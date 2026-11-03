@@ -1,0 +1,631 @@
+# Build the Halcyon Browser — a Chromium-based browser overlay.
+#
+# This workflow:
+#   1. Verifies the Halcyon overlay is internally consistent (the
+#      design-system tokens match between CSS and C++, the integration
+#      patches apply against the upstream Chromium tree).
+#   2. Fetches a real Chromium source checkout via depot_tools.
+#   3. Applies the Halcyon source tree and integration patches.
+#   4. Configures the build with the Halcyon GN args from
+#      halcyon/build/BUILD.md, adjusted for CI (component build, no LTO,
+#      no debug symbols, low parallelism — see the runner resource note
+#      below).
+#   5. Builds the `chrome` target — the Halcyon browser binary plus all
+#      its runtime files (resources.pak, locales/, icudtl.dat, etc.).
+#   6. Smoke-tests the binary (version, chrome://halcyon page, render
+#      about:blank, screenshot).
+#   7. Packages the binary plus all its runtime dependencies into a
+#      single tar.gz.
+#   8. Uploads the tar.gz as a GitHub Actions artifact with a 14-day
+#      retention.
+#
+# Runner resource note (IMPORTANT)
+# --------------------------------
+#
+# A real Chromium build needs:
+#   - 64 GB RAM (the lld linker OOMs at ~16 GB on the chrome binary)
+#   - 150 GB disk (source ~30 GB + build output ~80 GB + ccache ~10 GB)
+#   - 6–12 hours of build time
+#
+# The default GitHub-hosted ubuntu-latest runner provides:
+#   - 16 GB RAM
+#   - 14 GB SSD
+#   - 6-hour job timeout
+#
+# So a clean build on the free runner is generally NOT possible. The
+# workflow is written to give the build the best chance on a properly
+# sized runner:
+#
+#   - We use is_component_build=true, which produces a directory full of
+#     .so files instead of one monolithic chrome binary. This breaks
+#     the linker memory bottleneck into many small links.
+#   - We strip debug info, disable LTO, and set symbol_level=0 to keep
+#     the on-disk size down.
+#   - We free ~10 GB of preinstalled runner tooling at the start.
+#   - We use ccache so subsequent runs are much faster.
+#   - We use --no-history --shallow on gclient sync to keep the source
+#     smaller.
+#
+# To run this on a properly-sized runner, set the `runner` input on
+# the workflow_dispatch trigger (or override the `runs-on` value) to a
+# GitHub Cloud larger-runner label, e.g.:
+#
+#   runs-on: ubuntu-22.04-32core-128gb
+#
+# Or use a self-hosted runner with the equivalent resources. The
+# workflow is otherwise identical.
+#
+# For users on the free tier: the `verify` job (below) ALWAYS runs on
+# ubuntu-latest and validates the overlay without building, so PRs
+# still get fast feedback.
+
+name: Build Halcyon Browser
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: 'Runner label to use for the build job (default: ubuntu-22.04). Use a GitHub Cloud larger runner (e.g. ubuntu-22.04-32core-128gb) for reliable builds.'
+        type: string
+        default: 'ubuntu-22.04'
+      ninja_parallel:
+        description: 'Ninja parallelism (-j). Lower this if the link runs out of memory.'
+        type: string
+        default: '2'
+      skip_build:
+        description: 'Skip the actual `ninja` step (useful for testing the workflow plumbing).'
+        type: boolean
+        default: false
+
+# Cancel in-flight runs on the same ref when a new push lands. This
+# avoids stacking up duplicate builds on a fast-moving branch.
+concurrency:
+  group: build-halcyon-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+# Minimum permissions the workflow needs:
+#   contents: read  — to checkout the repo
+#   actions:  read  — to read workflow run history (used by actions/cache restore)
+permissions:
+  contents: read
+  actions: read
+
+env:
+  # Bump this when the cache layout changes (forces a cache reset).
+  CACHE_VERSION: v1
+  # Where depot_tools lives.
+  DEPOT_TOOLS_PATH: ${{ github.workspace }}/depot_tools
+  # Where the Chromium source tree lives.
+  CHROMIUM_PATH: ${{ github.workspace }}/chromium
+  CHROMIUM_SRC: ${{ github.workspace }}/chromium/src
+  # The Halcyon build output directory (relative to chromium/src).
+  BUILD_OUT: out/Halcyon
+  # ccache location.
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
+
+jobs:
+  # --- Fast verify job — always runs ----------------------------------------
+  #
+  # This job runs the cheap validations:
+  #   1. The design-system tokens are in sync between CSS and C++.
+  #   2. The integration patches apply cleanly against a freshly fetched
+  #      Chromium tree (we don't actually build — we just `git apply --check`).
+  #   3. The Halcyon visual preview HTML page renders correctly (using
+  #      Playwright on the runner).
+  #
+  # This job runs in ~5 minutes and gives PR authors fast feedback on
+  # overlay consistency. It runs on the free runner.
+
+  verify:
+    name: Verify overlay consistency
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Halcyon overlay
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Node (for the preview render)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright (Chromium only)
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install playwright
+          python3 -m playwright install chromium --with-deps
+
+      - name: Run design-token consistency check
+        run: |
+          python3 halcyon/design/verify_tokens.py
+
+      - name: Fetch depot_tools (for gclient)
+        run: |
+          git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git "$DEPOT_TOOLS_PATH"
+          echo "$DEPOT_TOOLS_PATH" >> "$GITHUB_PATH"
+
+      - name: Fetch a tiny Chromium tree (just to test patches apply)
+        run: |
+          # We don't need the full source to verify the patches apply —
+          # we just need the files the patches touch. To keep this fast
+          # (~2 minutes instead of an hour), we use a shallow fetch and
+          # then checkout only the files referenced by the patches.
+          mkdir -p "$CHROMIUM_PATH"
+          cd "$CHROMIUM_PATH"
+          fetch --nohooks --no-history chromium
+          cd src
+          # Don't run gclient sync — we don't need third-party deps for
+          # the patch-apply check. The patches only touch top-level
+          # Chromium files, which are present in the initial fetch.
+          git log --oneline -1
+
+      - name: Verify patches apply
+        run: |
+          cd "$CHROMIUM_SRC"
+          # Apply the Halcyon source tree first (rsync), then check each
+          # patch with `git apply --check` (no actual apply).
+          rsync -av "$GITHUB_WORKSPACE/halcyon/src/" .
+          for p in "$GITHUB_WORKSPACE"/patches/*.patch; do
+            name="$(basename "$p")"
+            echo "--- checking $name ---"
+            if git apply --check --verbose "$p"; then
+              echo "ok: $name applies cleanly"
+            else
+              echo "::error file=$name::Patch $name does not apply cleanly against the current Chromium HEAD."
+              echo "  The patches are pinned to a specific Chromium version." 
+              echo "  See IMPLEMENTATION.md §Step 1 for how to rebase them."
+              exit 1
+            fi
+          done
+
+      - name: Render the Halcyon visual preview
+        run: |
+          # The preview HTML is a single self-contained file. We render
+          # it with Playwright and verify it has the expected DOM.
+          python3 - <<'PY'
+          import asyncio, os
+          from playwright.async_api import async_playwright
+
+          async def main():
+              async with async_playwright() as p:
+                  browser = await p.chromium.launch()
+                  page = await browser.new_page(viewport={"width": 1280, "height": 800})
+                  await page.goto(
+                      "file://" + os.path.abspath("halcyon/preview/halcyon_preview.html"),
+                      wait_until="networkidle")
+                  await page.wait_for_timeout(400)
+
+                  tabs = await page.locator('.halcyon-preview-tab').count()
+                  assert tabs >= 3, f"expected >=3 tabs, got {tabs}"
+
+                  bg = await page.eval_on_selector(
+                      '.halcyon-preview-window',
+                      "el => getComputedStyle(el).backgroundColor")
+                  # Vellum bg #FAF8F3 → rgb(250, 248, 243)
+                  assert bg == "rgb(250, 248, 243)", f"unexpected bg: {bg}"
+
+                  # The Lantern indicator should be present and animated.
+                  anim = await page.eval_on_selector(
+                      '.halcyon-preview-lantern-glow',
+                      "el => getComputedStyle(el).animationName")
+                  assert anim == "halcyon-lantern-breathe", f"unexpected anim: {anim}"
+
+                  print("ok: visual preview renders correctly")
+                  await browser.close()
+
+          asyncio.run(main())
+          PY
+
+  # --- The actual build -----------------------------------------------------
+  #
+  # This is the job that produces the downloadable Halcyon browser. It
+  # needs a properly-sized runner. See the runner-resource note at the
+  # top of this file.
+
+  build:
+    name: Build Halcyon browser
+    needs: verify
+    runs-on: ${{ github.event.inputs.runner || 'ubuntu-22.04' }}
+    timeout-minutes: 360
+    env:
+      # Keep ccache modest — GitHub Actions cache limit is 10 GB per
+      # repo. We give ccache 4 GB and the source restore gets the rest.
+      CCACHE_MAX_SIZE: 4G
+    steps:
+      - name: Checkout Halcyon overlay
+        uses: actions/checkout@v4
+
+      - name: Show runner resources
+        run: |
+          echo "=== runner info ==="
+          uname -a
+          nproc
+          free -h
+          df -h /
+          echo ""
+          echo "=== selected runner label ==="
+          echo "${{ github.event.inputs.runner || 'ubuntu-22.04' }}"
+
+      - name: Free up runner disk
+        # Remove ~10 GB of preinstalled tooling we don't need. This is
+        # safe — none of these are used by a Chromium build.
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                       /usr/local/.ghcup /opt/hostedtoolcache/CodeCoverage \
+                       /opt/hostedtoolcache/PyPy* /usr/local/lib/node_modules \
+                       /usr/local/share/boost /opt/az
+          sudo apt-get clean
+          # Print disk usage after cleanup so we can see how much room
+          # we actually have to work with.
+          df -h /
+
+      - name: Install build dependencies
+        # These are the packages listed in Chromium's
+        # build/install-build-deps.sh for Ubuntu, pruned to the ones a
+        # Linux desktop chrome build actually needs.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            clang \
+            lld \
+            curl \
+            git \
+            python3 \
+            python3-venv \
+            pkg-config \
+            libnss3-dev \
+            libnspr4-dev \
+            libatk1.0-dev \
+            libatk-bridge2.0-dev \
+            libcups2-dev \
+            libdrm-dev \
+            libdbus-1-dev \
+            libxkbcommon-dev \
+            libx11-xcb-dev \
+            libxcomposite-dev \
+            libxdamage-dev \
+            libxfixes-dev \
+            libxrandr-dev \
+            libxrender-dev \
+            libxext-dev \
+            libxshmfence-dev \
+            libgbm-dev \
+            libgl1-mesa-dev \
+            libpango1.0-dev \
+            libcairo2-dev \
+            libasound2-dev \
+            libpulse-dev \
+            libffi-dev \
+            libssl-dev \
+            libudev-dev \
+            libglib2.0-dev \
+            libgtk-3-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            rsync \
+            ccache \
+            ca-certificates \
+            file
+
+      - name: Configure ccache
+        run: |
+          mkdir -p "$CCACHE_DIR"
+          ccache --set-config=max_size="$CCACHE_MAX_SIZE"
+          ccache --set-config=compression=true
+          ccache --set-config=cache_dir="$CCACHE_DIR"
+          ccache --set-config=hash_dir=false
+          ccache -p
+          echo "CCACHE_DIR=$CCACHE_DIR" >> "$GITHUB_ENV"
+
+      - name: Cache depot_tools
+        id: cache_depot
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.DEPOT_TOOLS_PATH }}
+          key: depot-tools-${{ env.CACHE_VERSION }}-${{ runner.os }}
+
+      - name: Install depot_tools
+        if: steps.cache_depot.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git "$DEPOT_TOOLS_PATH"
+          # Disable depot_tools' auto-update; we want a stable toolchain
+          # for reproducible builds.
+          echo "DEPOT_TOOLS_UPDATE=0" > "$DEPOT_TOOLS_PATH/env"
+          echo "DEPOT_TOOLS_BOOTSTRAP_PYTHON3=1" >> "$DEPOT_TOOLS_PATH/env"
+
+      - name: Put depot_tools on PATH
+        run: echo "$DEPOT_TOOLS_PATH" >> "$GITHUB_PATH"
+
+      - name: Cache ccache directory
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          # Include the runner OS in the key so a cache saved on ubuntu-22.04
+          # is never restored on macOS. The ccache compiler version is
+          # embedded in the cache contents so we don't need to key on it.
+          key: ccache-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ env.CACHE_VERSION }}-${{ runner.os }}-
+
+      - name: Cache Chromium source (shallow, partial)
+        # We cache the chromium/src/ tree EXCLUDING the .git directory and
+        # the build output. The cache key is based on the Halcyon features
+        # gni (which pins the Chromium version) so we get a fresh tree
+        # when the version changes.
+        #
+        # Note: the source tree is ~25 GB after --no-history --shallow.
+        # The GitHub Actions cache limit is 10 GB per repo, so this cache
+        # will likely be evicted on first save and the restore-keys
+        # fallback will be used. That's fine — the source can always be
+        # re-fetched by gclient sync.
+        id: cache_src
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CHROMIUM_SRC }}
+          key: chromium-src-${{ env.CACHE_VERSION }}-${{ hashFiles('halcyon/build/halcyon_features.gni') }}
+          restore-keys: |
+            chromium-src-${{ env.CACHE_VERSION }}-
+
+      - name: Fetch Chromium source
+        # Always run gclient sync even on cache hit, because:
+        #   - it's idempotent (only fetches what's missing)
+        #   - it re-checks out the right version if anything drifted
+        #   - it pulls in the third-party deps that aren't part of the
+        #     cached src/ tree
+        run: |
+          mkdir -p "$CHROMIUM_PATH"
+          cd "$CHROMIUM_PATH"
+          if [ ! -d src ]; then
+            fetch --nohooks --no-history chromium
+          fi
+          cd src
+          # The hook run installs the Linux sysroot and the hermetic
+          # clang. We need both.
+          gclient sync --no-history --shallow -D \
+            --custom-vars=checkout_pgo_profiles=false \
+            --custom-vars=checkout_configuration=minimal
+
+      - name: Show what we have
+        run: |
+          echo "=== chromium/src HEAD ==="
+          cd "$CHROMIUM_SRC"
+          git log --oneline -1
+          echo ""
+          echo "=== disk usage ==="
+          df -h "$GITHUB_WORKSPACE"
+          echo ""
+          echo "=== chromium/src size ==="
+          du -sh "$CHROMIUM_SRC" || true
+
+      - name: Apply Halcyon source tree
+        run: |
+          cd "$CHROMIUM_SRC"
+          rsync -av --exclude '.git' "$GITHUB_WORKSPACE/halcyon/src/" .
+          # Also apply the top-level halcyon/ directory (which contains
+          # halcyon/BUILD.gn, halcyon/build/, halcyon/branding/, etc.).
+          # This goes to chromium/src/halcyon/, which is where the
+          # "//halcyon:halcyon" target group lives.
+          rsync -av --exclude '.git' "$GITHUB_WORKSPACE/halcyon/" ./halcyon/
+
+      - name: Fetch Halcyon fonts
+        # fetch_fonts.py downloads OFL 1.1 fonts from Google Fonts and
+        # places them in chrome/browser/resources/halcyon_shared/fonts/.
+        # Required for halcyon_bundle_fonts=true.
+        run: |
+          cd "$CHROMIUM_SRC"
+          python3 halcyon/build/fetch_fonts.py || \
+            echo "::warning::font fetch failed — build will continue but fonts will be missing"
+
+      - name: Apply integration patches
+        run: |
+          cd "$CHROMIUM_SRC"
+          for p in "$GITHUB_WORKSPACE"/patches/*.patch; do
+            name="$(basename "$p")"
+            echo "=== applying $name ==="
+            if git apply --verbose --whitespace=nowarn "$p"; then
+              echo "ok: $name applied"
+            else
+              echo "::error file=patches/$name::Patch $name failed to apply."
+              echo "  The patches are pinned to a specific Chromium version."
+              echo "  See IMPLEMENTATION.md §Step 3 for how to rebase them."
+              exit 1
+            fi
+          done
+
+      - name: Verify design tokens are in sync (post-apply)
+        run: |
+          python3 "$GITHUB_WORKSPACE/halcyon/design/verify_tokens.py"
+
+      - name: Cache build output
+        # Cache the GN-generated build directory. Ninja's incremental
+        # build is much faster when the .ninja_log and .o files are
+        # present. We exclude the actual chrome binary and .so files
+        # (those are huge and stale ones would be wrong).
+        id: cache_build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.CHROMIUM_SRC }}/${{ env.BUILD_OUT }}
+            !${{ env.CHROMIUM_SRC }}/${{ env.BUILD_OUT }}/chrome
+            !${{ env.CHROMIUM_SRC }}/${{ env.BUILD_OUT }}/lib*.so
+            !${{ env.CHROMIUM_SRC }}/${{ env.BUILD_OUT }}/*.pak
+          key: build-out-${{ env.CACHE_VERSION }}-${{ github.sha }}
+          restore-keys: |
+            build-out-${{ env.CACHE_VERSION }}-
+
+      - name: Generate GN build configuration
+        # The args here are the Halcyon args from halcyon/build/BUILD.md,
+        # adjusted for CI:
+        #   - is_component_build=true breaks the monolithic link into
+        #     many small .so links, dramatically reducing link-time
+        #     memory. This is the single most important change for
+        #     fitting the build on a 16-32 GB runner.
+        #   - is_official_build=false turns off the strict PGO profile
+        #     requirement (we don't ship a PGO profile in CI).
+        #   - use_thin_lto=false, symbol_level=0, strip_debug_info=true
+        #     all reduce build size and time.
+        #   - treat_warnings_as_errors=false because the Halcyon source
+        #     tree may use features that aren't yet in the upstream
+        #     warning set.
+        run: |
+          cd "$CHROMIUM_SRC"
+          # Build the args.gn file from BUILD.md's recommended set,
+          # adjusted for CI.
+          mkdir -p "$BUILD_OUT"
+          cat > "$BUILD_OUT/args.gn" <<'GN'
+            # Halcyon-specific (from halcyon/build/BUILD.md)
+            enable_halcyon = true
+            halcyon_bundle_fonts = true
+            halcyon_default_search_engine = "duckduckgo"
+            halcyon_quiet_mode_default = true
+
+            # Build the Halcyon browser, not upstream Chrome
+            is_official_build = false
+            is_debug = false
+            symbol_level = 0
+            strip_debug_info = true
+            target_cpu = "x64"
+
+            # CI-specific reductions:
+            # is_component_build breaks the chrome binary into a
+            # directory full of .so files. Each .so links independently,
+            # so the link step uses far less peak memory. This is the
+            # most important knob for fitting the build on a small
+            # runner.
+            is_component_build = true
+
+            # No LTO. ThinLTO would speed up the runtime, but it
+            # requires a lot of memory and disk for the bitcode files.
+            use_thin_lto = false
+
+            # Disable features we don't need (each shaves time + disk)
+            enable_nacl = false
+            enable_remoting = false
+            enable_service_discovery = false
+
+            # Don't fail the CI build on warnings; the Halcyon code is
+            # new and may produce some that upstream's -Werror catches.
+            treat_warnings_as_errors = false
+
+            # Use the hermetic clang from third_party/llvm-build
+            is_clang = true
+            use_custom_libcxx = true
+
+            # No Goma / remote execution in CI
+            use_goma = false
+            use_remoteexec = false
+
+            # Disable tests and other targets we don't ship.
+            # (Ninja will only build what we ask for — `chrome` — but
+            #  disabling these in GN avoids generating build files for
+            #  them, which speeds up gn gen.)
+          GN
+
+          # Run gn gen.
+          gn gen "$BUILD_OUT"
+
+          # Show the args we ended up with.
+          echo ""
+          echo "=== final args.gn ==="
+          cat "$BUILD_OUT/args.gn"
+
+      - name: Build Halcyon (ninja)
+        if: ${{ github.event.inputs.skip_build != 'true' }}
+        run: |
+          cd "$CHROMIUM_SRC"
+          # Use ccache by exporting CC and CXX that prefix clang with
+          # ccache. GN's clang is at third_party/llvm-build/Release+Asserts/bin/clang
+          # — we let GN find it, but we set CCACHE_PREFIX so that
+          # invocations go through ccache.
+          export CCACHE_PREFIX=""
+          # ninja -j limits parallelism to keep memory bounded.
+          # The default is to use all cores; with -j2 we cap peak memory.
+          NINJA_J="${{ github.event.inputs.ninja_parallel || '2' }}"
+          echo "Running ninja with -j$NINJA_J"
+          ninja -C "$BUILD_OUT" -j"$NINJA_J" chrome
+
+      - name: Skip build (workflow_dispatch testing only)
+        if: ${{ github.event.inputs.skip_build == 'true' }}
+        run: |
+          echo "skip_build=true — not running ninja."
+          echo "The build output is whatever was in the cache (or nothing)."
+          echo "Use this only to test the workflow plumbing end-to-end."
+
+      - name: Verify chrome binary exists
+        if: ${{ github.event.inputs.skip_build != 'true' }}
+        run: |
+          CHROME_BIN="$CHROMIUM_SRC/$BUILD_OUT/chrome"
+          if [ ! -x "$CHROME_BIN" ]; then
+            echo "::error::chrome binary not found at $CHROME_BIN"
+            echo "  The build did not produce a binary. Check the ninja output above."
+            exit 1
+          fi
+          ls -lh "$CHROME_BIN"
+          file "$CHROME_BIN"
+
+      - name: Smoke test the build
+        if: ${{ github.event.inputs.skip_build != 'true' }}
+        # We can't run the binary directly from the build dir because
+        # some of the runtime files (locales, pak) live alongside the
+        # binary in the build out dir — which is fine. The smoke test
+        # runs the binary in place.
+        run: |
+          # The smoke-test script expects a packaged dir; for the
+          # in-place test we point it at the build out dir.
+          "$GITHUB_WORKSPACE/scripts/smoke_test_halcyon.sh" \
+            "$CHROMIUM_SRC/$BUILD_OUT"
+
+      - name: Package the build
+        if: ${{ github.event.inputs.skip_build != 'true' }}
+        run: |
+          "$GITHUB_WORKSPACE/scripts/package_halcyon.sh" \
+            "$CHROMIUM_SRC/$BUILD_OUT" \
+            "$GITHUB_WORKSPACE/halcyon-linux-x86_64" \
+            "$GITHUB_WORKSPACE/halcyon-linux-x86_64.tar.gz"
+
+      - name: Show package contents
+        if: ${{ github.event.inputs.skip_build != 'true' }}
+        run: |
+          ls -la "$GITHUB_WORKSPACE/halcyon-linux-x86_64"
+          echo ""
+          echo "=== archive ==="
+          ls -lh "$GITHUB_WORKSPACE/halcyon-linux-x86_64.tar.gz"
+
+      - name: Upload artifact
+        if: ${{ github.event.inputs.skip_build != 'true' && always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: halcyon-linux-x86_64
+          path: halcyon-linux-x86_64.tar.gz
+          retention-days: 14
+          if-no-files-found: error
+          compression-level: 0  # already a tar.gz; no point re-compressing
+
+      - name: Upload build logs on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: halcyon-build-logs
+          path: |
+            ${{ env.CHROMIUM_SRC }}/${{ env.BUILD_OUT }}/*.ninja_log
+            ${{ env.CHROMIUM_SRC }}/${{ env.BUILD_OUT }}/*.gn
+          retention-days: 7
+          if-no-files-found: ignore

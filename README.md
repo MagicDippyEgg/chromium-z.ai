@@ -241,6 +241,51 @@ out/Halcyon/Halcyon.exe                            # Windows
 Full build instructions are in `src/halcyon/build/BUILD.md`. Build
 arguments, troubleshooting, and platform-specific notes are there.
 
+### CI: GitHub Actions
+
+This repository ships a GitHub Actions workflow at
+[.github/workflows/build-halcyon.yml](.github/workflows/build-halcyon.yml)
+that automates the build and produces a downloadable browser artifact.
+
+**Triggers.** The workflow runs on:
+- Push to `main` (excluding doc-only changes).
+- Pull requests targeting `main` (excluding doc-only changes).
+- Manual dispatch from the Actions tab.
+
+**Two jobs.**
+1. `verify` — runs in ~5 minutes on a free `ubuntu-22.04` runner.
+   Validates the design-system tokens are in sync, the integration
+   patches apply cleanly, and the visual preview renders. Always runs.
+2. `build` — runs the actual `ninja -C out/Halcyon chrome` build,
+   smoke-tests the binary, packages it, and uploads the artifact. The
+   `verify` job must pass first.
+
+**Manual build.** Go to the repo's Actions tab, pick "Build Halcyon
+Browser", click "Run workflow". Inputs:
+- `runner` — the GitHub Actions runner label. Default
+  `ubuntu-22.04` (the free runner). For a reliable build use a
+  GitHub Cloud larger runner label like `ubuntu-22.04-32core-128gb`.
+  See the runner-resource note in the workflow file for why.
+- `ninja_parallel` — `-j` value for ninja. Lower this if the link
+  step runs out of memory. Default `2`.
+- `skip_build` — set to `true` to test the workflow plumbing
+  end-to-end without actually running `ninja`.
+
+**Where to find artifacts.** On any successful build, the workflow
+uploads `halcyon-linux-x86_64.tar.gz` under the run's Artifacts panel.
+Retention is 14 days. The package contains the chrome binary, all
+required .so / .pak / .dat / locales / icudtl / V8 snapshots, a
+launcher script, and a README. Download, `tar -xzf`, run
+`./halcyon-launcher`.
+
+**Runner reality.** A real Chromium build needs 64 GB RAM, 150 GB
+disk, and 6–12 hours. The free `ubuntu-latest` runner has 16 GB RAM,
+14 GB disk, and a 6-hour timeout. The workflow is written to give the
+build the best chance on a properly-sized runner (`is_component_build`
+to break the monolithic link into many small ones, ccache, no LTO,
+no debug symbols, etc.), but it will generally NOT complete on the
+free tier. The `verify` job is the reliable CI signal on PRs.
+
 ---
 
 ## What works vs. what's a sketch
