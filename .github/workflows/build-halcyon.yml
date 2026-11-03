@@ -156,40 +156,52 @@ jobs:
         run: |
           python3 halcyon/design/verify_tokens.py
 
-      - name: Fetch depot_tools (for gclient)
+      - name: Fetch Chromium source tree (shallow, for patch-apply check)
+        # The patches only touch top-level Chromium files (under chrome/,
+        # build/, ui/) — no third-party deps. So a shallow git clone of
+        # chromium/src.git is enough; we don't need depot_tools or
+        # gclient sync here. This brings the step down from ~15 minutes
+        # (full fetch) to ~3 minutes (shallow clone, ~3 GB).
+        #
+        # We use --filter=blob:none for a partial clone: only the blobs
+        # we touch get downloaded. Combined with --depth 1, this means
+        # we end up with the working tree files we need and not much
+        # else. (The patch context lines pull in adjacent code, so we
+        # can't go more aggressive than this.)
         run: |
-          git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git "$DEPOT_TOOLS_PATH"
-          echo "$DEPOT_TOOLS_PATH" >> "$GITHUB_PATH"
-
-      - name: Fetch a tiny Chromium tree (just to test patches apply)
-        run: |
-          # We don't need the full source to verify the patches apply —
-          # we just need the files the patches touch. To keep this fast
-          # (~2 minutes instead of an hour), we use a shallow fetch and
-          # then checkout only the files referenced by the patches.
-          mkdir -p "$CHROMIUM_PATH"
-          cd "$CHROMIUM_PATH"
-          fetch --nohooks --no-history chromium
-          cd src
-          # Don't run gclient sync — we don't need third-party deps for
-          # the patch-apply check. The patches only touch top-level
-          # Chromium files, which are present in the initial fetch.
+          mkdir -p "$CHROMIUM_SRC"
+          cd "$CHROMIUM_SRC"
+          git init
+          git remote add origin https://chromium.googlesource.com/chromium/src.git
+          # Fetch only the main branch, depth 1, no tags. --filter=blob:none
+          # makes it a partial clone; we'll get the actual file contents on
+          # the checkout step.
+          git fetch --depth 1 --filter=blob:none origin main
+          git checkout FETCH_HEAD
           git log --oneline -1
+          # Show how big the resulting tree is.
+          du -sh "$CHROMIUM_SRC" || true
 
       - name: Verify patches apply
         run: |
           cd "$CHROMIUM_SRC"
           # Apply the Halcyon source tree first (rsync), then check each
-          # patch with `git apply --check` (no actual apply).
+          # patch with `git apply --check` (no actual apply). The
+          # rsync of the halcyon source tree adds new files at their
+          # canonical paths; the patches then modify existing upstream
+          # files to point at the new code.
           rsync -av "$GITHUB_WORKSPACE/halcyon/src/" .
+          # Also copy the top-level halcyon/ tree (BUILD.gn + branding
+          # etc.), which goes to chromium/src/halcyon/.
+          rsync -av "$GITHUB_WORKSPACE/halcyon/" ./halcyon/
           for p in "$GITHUB_WORKSPACE"/patches/*.patch; do
             name="$(basename "$p")"
             echo "--- checking $name ---"
             if git apply --check --verbose "$p"; then
               echo "ok: $name applies cleanly"
             else
-              echo "::error file=$name::Patch $name does not apply cleanly against the current Chromium HEAD."
-              echo "  The patches are pinned to a specific Chromium version." 
+              echo "::error file=patches/$name::Patch $name does not apply cleanly against current Chromium HEAD."
+              echo "  The patches are pinned to a specific Chromium version."
               echo "  See IMPLEMENTATION.md §Step 1 for how to rebase them."
               exit 1
             fi
