@@ -1,0 +1,159 @@
+/* halcyon_side_panel.css — shared layout primitives for side-panel WebUI.
+ *
+ * Used by Quill and (potentially) Margin Notes. Side panels share a layout:
+ * a fixed-height header (origin label + "new" button), a scrollable list
+ * of cards, and a fixed-height footer with a single sentence and a count.
+ *
+ * The page-specific CSS (e.g., quill.css) adds page-specific styles on top.
+ */
+
+body.halcyon-side-panel,
+body.halcyon-quill {
+  min-height: 100vh;
+  background: var(--halcyon-bg);
+  color: var(--halcyon-text);
+  font: var(--halcyon-text-body);
+  display: flex;
+  flex-direction: column;
+}
+
+.halcyon-side-panel-header,
+.halcyon-quill-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--halcyon-space-3);
+  padding: var(--halcyon-space-3) var(--halcyon-space-4);
+  border-bottom: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  background: var(--halcyon-surface);
+  flex-shrink: 0;
+}
+
+.halcyon-side-panel-list,
+.halcyon-quill-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--halcyon-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--halcyon-space-4);
+}
+
+.halcyon-side-panel-list[data-empty="true"],
+.halcyon-quill-list[data-empty="true"] {
+  align-items: center;
+  justify-content: center;
+}
+
+.halcyon-side-panel-footer,
+.halcyon-quill-footer {
+  flex-shrink: 0;
+  padding: var(--halcyon-space-2) var(--halcyon-space-4);
+  border-top: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  background: var(--halcyon-surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--halcyon-space-3);
+}
+
+.halcyon-side-panel-footer-text,
+.halcyon-quill-footer-text {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-3);
+  margin: 0;
+}
+
+/* The "new" pill button shared by all side panels. */
+.halcyon-side-panel-new,
+.halcyon-quill-new {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--halcyon-space-2);
+  padding: var(--halcyon-space-1) var(--halcyon-space-3);
+  background: transparent;
+  color: var(--halcyon-accent-text);
+  border: var(--halcyon-stroke-thin) solid var(--halcyon-accent);
+  border-radius: var(--halcyon-radius-pill);
+  font: var(--halcyon-text-caption);
+  cursor: pointer;
+  transition: background var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+
+.halcyon-side-panel-new:hover,
+.halcyon-quill-new:hover {
+  background: var(--halcyon-accent-soft);
+}
+
+.halcyon-side-panel-new:active,
+.halcyon-quill-new:active {
+  background: var(--halcyon-accent-press);
+  color: var(--halcyon-bg);
+}
+
+.halcyon-side-panel-new:focus-visible,
+.halcyon-quill-new:focus-visible {
+  outline: var(--halcyon-stroke-bold) solid var(--halcyon-accent);
+  outline-offset: 2px;
+}
+
+/* Empty-state placeholder. */
+.halcyon-side-panel-empty,
+.halcyon-quill-empty {
+  text-align: center;
+  color: var(--halcyon-text-2);
+  max-width: 240px;
+}
+
+.halcyon-side-panel-empty-text,
+.halcyon-quill-empty-text {
+  font: var(--halcyon-text-body-lg);
+  color: var(--halcyon-text);
+  margin: 0 0 var(--halcyon-space-2);
+}
+
+.halcyon-side-panel-empty-hint,
+.halcyon-quill-empty-hint {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-3);
+  margin: 0;
+}
+
+.halcyon-side-panel-empty-hint kbd,
+.halcyon-quill-empty-hint kbd {
+  font: var(--halcyon-text-caption);
+  background: var(--halcyon-surface-2);
+  border: var(--halcyon-stroke-hairline) solid var(--halcyon-border);
+  border-radius: var(--halcyon-radius-sm);
+  padding: 1px var(--halcyon-space-1);
+  color: var(--halcyon-text-2);
+}
+
+@media (prefers-color-scheme: dark) {
+  body.halcyon-side-panel,
+  body.halcyon-quill {
+    background: var(--halcyon-eclipse-bg, #1a1c1f);
+    color: var(--halcyon-eclipse-text, #e6e3dc);
+  }
+
+  .halcyon-side-panel-header,
+  .halcyon-side-panel-footer,
+  .halcyon-quill-header,
+  .halcyon-quill-footer {
+    background: var(--halcyon-eclipse-surface, #212428);
+    border-color: var(--halcyon-eclipse-border-soft, #2a2d32);
+  }
+
+  .halcyon-side-panel-empty-hint kbd,
+  .halcyon-quill-empty-hint kbd {
+    background: var(--halcyon-eclipse-surface-2, #2a2d32);
+    border-color: var(--halcyon-eclipse-border, #3a3d43);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .halcyon-side-panel-new,
+  .halcyon-quill-new {
+    transition: none;
+  }
+}

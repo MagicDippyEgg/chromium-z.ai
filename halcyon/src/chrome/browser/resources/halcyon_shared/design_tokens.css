@@ -1,0 +1,336 @@
+/* Halcyon Design Tokens
+ *
+ * This file is the single source of truth for the Halcyon visual language on the
+ * WebUI side. Every Halcyon WebUI page (NTP, Settings, Tides, Cairn, Cove,
+ * Margin Notes, Quill, Lantern report) imports this file via a <link> in its
+ * HTML and then layers its own page-specific stylesheet on top.
+ *
+ * The values here are deliberately the same as the C++ SkColor constants in
+ * ui/base/halcyon_color_palette.h and the brand-book values in
+ * src/halcyon/branding/color_system.md. They must stay in sync; a check in
+ * halcyon/design/verify_tokens.py enforces this.
+ */
+
+:root {
+  /* ===== Fonts ===== */
+  --halcyon-font-ui:        Inter, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --halcyon-font-display:   "Inter Tight", Inter, -apple-system, "Segoe UI", sans-serif;
+  --halcyon-font-serif:     "Source Serif 4", Georgia, "Times New Roman", serif;
+  --halcyon-font-mono:      "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  /* ===== Type scale ===== */
+  --halcyon-text-caption:   500 11px/14px var(--halcyon-font-ui);
+  --halcyon-text-body:      400 13px/18px var(--halcyon-font-ui);
+  --halcyon-text-body-lg:   400 15px/22px var(--halcyon-font-ui);
+  --halcyon-text-subtitle:  500 14px/20px var(--halcyon-font-ui);
+  --halcyon-text-title:     600 17px/22px var(--halcyon-font-display);
+  --halcyon-text-headline:  600 22px/28px var(--halcyon-font-display);
+  --halcyon-text-display:   500 34px/40px var(--halcyon-font-display);
+  --halcyon-text-display-lg:500 48px/56px var(--halcyon-font-display);
+  --halcyon-text-serif:     italic 400 22px/32px var(--halcyon-font-serif);
+  --halcyon-text-serif-lg:  italic 400 28px/40px var(--halcyon-font-serif);
+
+  /* ===== Spacing (4px grid) ===== */
+  --halcyon-space-1:  4px;
+  --halcyon-space-2:  8px;
+  --halcyon-space-3:  12px;
+  --halcyon-space-4:  16px;
+  --halcyon-space-5:  20px;
+  --halcyon-space-6:  24px;
+  --halcyon-space-7:  32px;
+  --halcyon-space-8:  48px;
+  --halcyon-space-9:  64px;
+  --halcyon-space-10: 96px;
+
+  /* ===== Radii ===== */
+  --halcyon-radius-sm:   4px;
+  --halcyon-radius-md:   6px;
+  --halcyon-radius-lg:   12px;
+  --halcyon-radius-pill: 9999px;
+
+  /* ===== Strokes ===== */
+  --halcyon-stroke-hairline: 1px;
+  --halcyon-stroke-thin:     1.5px;
+  --halcyon-stroke-bold:     2px;
+
+  /* ===== Motion ===== */
+  --halcyon-ease:           cubic-bezier(0.2, 0, 0, 1);
+  --halcyon-ease-out:       cubic-bezier(0, 0, 0.2, 1);
+  --halcyon-dur-instant:    60ms;
+  --halcyon-dur-fast:       140ms;
+  --halcyon-dur-med:        220ms;
+  --halcyon-dur-slow:       600ms;
+
+  /* ===== Light theme — "Vellum" ===== */
+  --halcyon-bg:           #FAF8F3;
+  --halcyon-surface:      #F0EEE8;
+  --halcyon-surface-2:    #E8E5DC;
+  --halcyon-surface-3:    #DEDBCF;
+  --halcyon-border:       #D8D4C8;
+  --halcyon-border-soft:  #E4E0D2;
+
+  --halcyon-text:         #2B2F38;
+  --halcyon-text-2:       #6B6F78;
+  --halcyon-text-3:       #A8A8A0;
+
+  --halcyon-accent:       #7A9B76;
+  --halcyon-accent-press: #5F7D5C;
+  --halcyon-accent-soft:  #EAEEE6;
+  --halcyon-accent-text:  #2F4A2C;
+
+  --halcyon-link:         #5B7C99;
+  --halcyon-link-press:   #45617B;
+  --halcyon-active-tab:   #5B7C99;
+
+  --halcyon-caution:      #C4855C;
+  --halcyon-caution-soft: #F2E3D2;
+  --halcyon-danger:       #B05945;
+  --halcyon-danger-soft:  #EFD6CE;
+  --halcyon-success:      #6B8A68;
+  --halcyon-success-soft: #E4ECDE;
+
+  --halcyon-omnibox-bg:           #F0EEE8;
+  --halcyon-omnibox-bg-focus:     #FFFFFF;
+  --halcyon-omnibox-border:      #D8D4C8;
+  --halcyon-omnibox-border-focus:#7A9B76;
+
+  --halcyon-tab-bg:           #E4E0D2;
+  --halcyon-tab-bg-hover:     #ECE9DD;
+  --halcyon-tab-bg-active:    #FAF8F3;
+  --halcyon-tab-bg-pinned:    #DEDBCF;
+  --halcyon-tab-text:         #6B6F78;
+  --halcyon-tab-text-active:  #2B2F38;
+
+  --halcyon-toolbar-bg:      #FAF8F3;
+  --halcyon-toolbar-border:  #E4E0D2;
+
+  --halcyon-menu-bg:          #FAF8F3;
+  --halcyon-menu-item-hover:  #E8E5DC;
+  --halcyon-menu-item-active: #DEDBCF;
+
+  --halcyon-lantern-dim:      #C9C5B7;
+  --halcyon-lantern-glow:     #7A9B76;
+
+  --halcyon-cove-bg:          #1A1D24;
+  --halcyon-cove-text:        #E4E2DC;
+}
+
+/* ===== Dark theme — "Eclipse" ===== */
+:root[data-halcyon-theme="dark"] {
+  --halcyon-bg:           #1A1D24;
+  --halcyon-surface:      #22262F;
+  --halcyon-surface-2:    #2B2F39;
+  --halcyon-surface-3:    #343945;
+  --halcyon-border:       #3A3F4B;
+  --halcyon-border-soft:  #2F343F;
+
+  --halcyon-text:         #E4E2DC;
+  --halcyon-text-2:       #9A9CA0;
+  --halcyon-text-3:       #6B6D70;
+
+  --halcyon-accent:       #8FB389;
+  --halcyon-accent-press: #7BA075;
+  --halcyon-accent-soft:  #2A3627;
+  --halcyon-accent-text:  #B7D5B2;
+
+  --halcyon-link:         #7FA4C7;
+  --halcyon-link-press:   #6B8DAE;
+  --halcyon-active-tab:   #7FA4C7;
+
+  --halcyon-caution:      #D9A276;
+  --halcyon-caution-soft: #3A2F23;
+  --halcyon-danger:       #D17863;
+  --halcyon-danger-soft:  #3A2620;
+  --halcyon-success:      #8FB389;
+  --halcyon-success-soft: #2A3627;
+
+  --halcyon-omnibox-bg:           #22262F;
+  --halcyon-omnibox-bg-focus:     #1A1D24;
+  --halcyon-omnibox-border:      #3A3F4B;
+  --halcyon-omnibox-border-focus:#8FB389;
+
+  --halcyon-tab-bg:           #1A1D24;
+  --halcyon-tab-bg-hover:     #22262F;
+  --halcyon-tab-bg-active:    #2B2F39;
+  --halcyon-tab-bg-pinned:    #343945;
+  --halcyon-tab-text:         #9A9CA0;
+  --halcyon-tab-text-active:  #E4E2DC;
+
+  --halcyon-toolbar-bg:      #1A1D24;
+  --halcyon-toolbar-border:  #2F343F;
+
+  --halcyon-menu-bg:          #22262F;
+  --halcyon-menu-item-hover:  #2B2F39;
+  --halcyon-menu-item-active: #343945;
+
+  --halcyon-lantern-dim:      #4A4F5B;
+  --halcyon-lantern-glow:     #8FB389;
+
+  --halcyon-cove-bg:          #14161B;
+  --halcyon-cove-text:        #E4E2DC;
+}
+
+/* ===== High contrast ===== */
+@media (prefers-contrast: more) {
+  :root {
+    --halcyon-bg:           #FFFFFF;
+    --halcyon-surface:       #FFFFFF;
+    --halcyon-surface-2:     #FFFFFF;
+    --halcyon-border:        #000000;
+    --halcyon-border-soft:   #000000;
+    --halcyon-text:          #000000;
+    --halcyon-text-2:        #000000;
+    --halcyon-accent:        #2F4A2C;
+    --halcyon-accent-soft:   #FFFFFF;
+  }
+  :root[data-halcyon-theme="dark"] {
+    --halcyon-bg:           #000000;
+    --halcyon-surface:      #000000;
+    --halcyon-surface-2:    #000000;
+    --halcyon-border:       #FFFFFF;
+    --halcyon-border-soft:  #FFFFFF;
+    --halcyon-text:         #FFFFFF;
+    --halcyon-text-2:       #FFFFFF;
+    --halcyon-accent:       #B7D5B2;
+    --halcyon-accent-soft:  #000000;
+  }
+}
+
+/* ===== Forced colors (Windows high-contrast theme) ===== */
+@media (forced-colors: active) {
+  :root {
+    --halcyon-bg:           Canvas;
+    --halcyon-surface:      Canvas;
+    --halcyon-surface-2:    Canvas;
+    --halcyon-border:       ButtonBorder;
+    --halcyon-text:         CanvasText;
+    --halcyon-text-2:       CanvasText;
+    --halcyon-accent:       Highlight;
+    --halcyon-link:         LinkText;
+  }
+}
+
+/* ===== Reduced motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --halcyon-dur-instant:  0ms;
+    --halcyon-dur-fast:     0ms;
+    --halcyon-dur-med:      0ms;
+    --halcyon-dur-slow:     0ms;
+  }
+}
+
+/* ===== Halcyon focus ring — used everywhere ===== */
+:root {
+  --halcyon-focus-ring:
+    0 0 0 2px var(--halcyon-bg),
+    0 0 0 4px var(--halcyon-accent);
+}
+
+/* Apply focus ring to anything that wants it. */
+.halcyon-focus-ring:focus-visible,
+.halcyon-focus-ring:focus-within {
+  outline: none;
+  box-shadow: var(--halcyon-focus-ring);
+}
+
+/* ===== Shared base styles for Halcyon WebUI pages ===== */
+html {
+  font: var(--halcyon-text-body);
+  background: var(--halcyon-bg);
+  color: var(--halcyon-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--halcyon-bg);
+  color: var(--halcyon-text);
+  font: var(--halcyon-text-body);
+}
+
+a {
+  color: var(--halcyon-link);
+  text-decoration: none;
+  transition: color var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+a:hover { color: var(--halcyon-link-press); text-decoration: underline; text-underline-offset: 2px; }
+a:active { color: var(--halcyon-link-press); }
+
+button {
+  font: inherit;
+  color: var(--halcyon-text);
+  background: var(--halcyon-surface);
+  border: var(--halcyon-stroke-hairline) solid var(--halcyon-border);
+  border-radius: var(--halcyon-radius-md);
+  padding: var(--halcyon-space-2) var(--halcyon-space-4);
+  cursor: pointer;
+  transition:
+    background var(--halcyon-dur-fast) var(--halcyon-ease),
+    border-color var(--halcyon-dur-fast) var(--halcyon-ease),
+    box-shadow var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+button:hover { background: var(--halcyon-surface-2); border-color: var(--halcyon-border); }
+button:active { background: var(--halcyon-surface-3); border-color: var(--halcyon-border); }
+
+button.halcyon-primary {
+  background: var(--halcyon-accent);
+  border-color: var(--halcyon-accent);
+  color: #FFFFFF;
+}
+:root[data-halcyon-theme="dark"] button.halcyon-primary {
+  color: #14161B;
+}
+button.halcyon-primary:hover { background: var(--halcyon-accent-press); border-color: var(--halcyon-accent-press); }
+
+button.halcyon-ghost {
+  background: transparent;
+  border-color: transparent;
+}
+button.halcyon-ghost:hover { background: var(--halcyon-surface-2); border-color: transparent; }
+button.halcyon-ghost:active { background: var(--halcyon-surface-3); border-color: transparent; }
+
+input[type="text"],
+input[type="search"],
+input[type="url"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  font: inherit;
+  color: var(--halcyon-text);
+  background: var(--halcyon-surface);
+  border: var(--halcyon-stroke-hairline) solid var(--halcyon-border);
+  border-radius: var(--halcyon-radius-sm);
+  padding: var(--halcyon-space-2) var(--halcyon-space-3);
+  transition:
+    background var(--halcyon-dur-fast) var(--halcyon-ease),
+    border-color var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  background: var(--halcyon-omnibox-bg-focus);
+  border-color: var(--halcyon-accent);
+  box-shadow: var(--halcyon-focus-ring);
+}
+
+::selection {
+  background: var(--halcyon-accent-soft);
+  color: var(--halcyon-text);
+}
+
+/* Scrollbars — thin, calm */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--halcyon-border);
+  border-radius: var(--halcyon-radius-pill);
+  border: 2px solid var(--halcyon-bg);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--halcyon-text-3); }
+
+/* Hide the scrollbars on the page edges of the chrome where we want a calm edge. */
+.halcyon-scroll-edge::-webkit-scrollbar { width: 6px; }

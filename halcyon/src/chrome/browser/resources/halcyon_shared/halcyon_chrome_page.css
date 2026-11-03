@@ -1,0 +1,186 @@
+/* halcyon_chrome_page.css — shared layout primitives for chrome:// pages.
+ *
+ * Every chrome:// page (settings, history, downloads, about, lantern report,
+ * ...) shares the same skeleton: a centered column, max-width 720px, with
+ * a header at the top and a footer at the bottom. This file defines those
+ * primitives once. Page-specific styles live in their own page CSS file
+ * (e.g., halcyon_settings/settings.css).
+ *
+ * The design tokens (CSS custom properties) are defined in design_tokens.css
+ * and loaded BEFORE this file. This file uses them; it does not define them.
+ */
+
+/* The page body. Every chrome:// page sets class="halcyon-chrome-page" on
+ * <body>, or a class that targets a specific page (halcyon-settings, etc.).
+ * Either way, this file applies the base layout. */
+body.halcyon-chrome-page,
+body.halcyon-settings,
+body.halcyon-lantern-report,
+body.halcyon-about {
+  min-height: 100vh;
+  background: var(--halcyon-bg);
+  color: var(--halcyon-text);
+  font: var(--halcyon-text-body);
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Page header ------------------------------------------------------ */
+
+.halcyon-chrome-header,
+.halcyon-lantern-report-header {
+  border-bottom: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  padding: var(--halcyon-space-6) var(--halcyon-space-6) var(--halcyon-space-5);
+  background: var(--halcyon-surface);
+  flex-shrink: 0;
+}
+
+.halcyon-chrome-header-inner,
+.halcyon-lantern-report-header-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  align-items: baseline;
+  gap: var(--halcyon-space-3);
+  flex-wrap: wrap;
+}
+
+.halcyon-chrome-title,
+.halcyon-lantern-report-title {
+  font: var(--halcyon-text-headline);
+  margin: 0;
+  letter-spacing: -0.01em;
+  flex: 0 0 auto;
+}
+
+.halcyon-chrome-subtitle {
+  font: var(--halcyon-text-body);
+  color: var(--halcyon-text-2);
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+/* --- Page body -------------------------------------------------------- */
+
+.halcyon-chrome-body,
+.halcyon-lantern-report-main {
+  flex: 1 1 auto;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--halcyon-space-6);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--halcyon-space-7);
+}
+
+/* --- Page footer ------------------------------------------------------ */
+
+.halcyon-chrome-footer,
+.halcyon-lantern-report-footer {
+  border-top: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  padding: var(--halcyon-space-3) var(--halcyon-space-6);
+  text-align: center;
+  background: var(--halcyon-surface);
+  flex-shrink: 0;
+}
+
+.halcyon-chrome-footer-text,
+.halcyon-lantern-report-footer-text {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-3);
+  margin: 0 auto;
+  max-width: 720px;
+}
+
+/* --- Section heading within a chrome page body ------------------------ */
+
+.halcyon-chrome-section-title,
+.halcyon-lantern-report-breakdown-title,
+.halcyon-lantern-report-sites-title {
+  font: var(--halcyon-text-title);
+  margin: 0 0 var(--halcyon-space-4);
+  letter-spacing: -0.005em;
+}
+
+/* --- Buttons (calm pill, sage border) --------------------------------- */
+
+.halcyon-chrome-button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--halcyon-space-2);
+  background: transparent;
+  color: var(--halcyon-accent-text);
+  border: var(--halcyon-stroke-thin) solid var(--halcyon-accent);
+  padding: var(--halcyon-space-1) var(--halcyon-space-3);
+  border-radius: var(--halcyon-radius-pill);
+  font: var(--halcyon-text-caption);
+  cursor: pointer;
+  transition: background var(--halcyon-dur-fast) var(--halcyon-ease),
+              border-color var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+
+.halcyon-chrome-button:hover {
+  background: var(--halcyon-accent-soft);
+}
+
+.halcyon-chrome-button:active {
+  background: var(--halcyon-accent-press);
+  color: var(--halcyon-bg);
+  border-color: var(--halcyon-accent-press);
+}
+
+.halcyon-chrome-button:focus-visible {
+  outline: var(--halcyon-stroke-bold) solid var(--halcyon-accent);
+  outline-offset: 2px;
+}
+
+/* --- Links ----------------------------------------------------------- */
+
+.halcyon-chrome-link {
+  color: var(--halcyon-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  transition: color var(--halcyon-dur-fast) var(--halcyon-ease),
+              text-decoration-thickness var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+
+.halcyon-chrome-link:hover {
+  color: var(--halcyon-link-press);
+  text-decoration-thickness: 2px;
+}
+
+.halcyon-chrome-link:focus-visible {
+  outline: var(--halcyon-stroke-thin) solid var(--halcyon-accent);
+  outline-offset: 2px;
+  border-radius: var(--halcyon-radius-sm);
+}
+
+/* --- Dark theme overrides (Eclipse) ---------------------------------- */
+
+@media (prefers-color-scheme: dark) {
+  body.halcyon-chrome-page,
+  body.halcyon-settings,
+  body.halcyon-lantern-report,
+  body.halcyon-about {
+    background: var(--halcyon-eclipse-bg, #1a1c1f);
+    color: var(--halcyon-eclipse-text, #e6e3dc);
+  }
+
+  .halcyon-chrome-header,
+  .halcyon-chrome-footer,
+  .halcyon-lantern-report-header,
+  .halcyon-lantern-report-footer {
+    background: var(--halcyon-eclipse-surface, #212428);
+    border-color: var(--halcyon-eclipse-border-soft, #2a2d32);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .halcyon-chrome-button,
+  .halcyon-chrome-link {
+    transition: none;
+  }
+}

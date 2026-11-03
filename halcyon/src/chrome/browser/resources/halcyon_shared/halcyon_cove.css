@@ -1,0 +1,89 @@
+/* halcyon_cove.css — shared layout primitives for the Cove (private browsing).
+ *
+ * The Cove is a calm, dark start page with a single sentence about what's
+ * private and what isn't. The design intent is the opposite of upstream
+ * "incognito" branding: no spy man icon, no scary disclaimer, no dark
+ * disclaimer page. See halcyon/branding/voice.md §The Cove for the copy.
+ *
+ * The Cove is always rendered in the Eclipse palette, regardless of the
+ * system color scheme. (Private browsing is dark by intent.)
+ */
+
+body.halcyon-cove {
+  min-height: 100vh;
+  background: #0d0e10;  /* darker than Eclipse --halcyon-eclipse-bg */
+  color: #e6e3dc;
+  font: var(--halcyon-text-body);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--halcyon-space-8) var(--halcyon-space-6);
+}
+
+.halcyon-cove-main {
+  max-width: 540px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--halcyon-space-6);
+}
+
+.halcyon-cove-mark {
+  color: #8da9c4;  /* a calmer blue than --halcyon-accent — matches the Cove's "edge of the tide" mood */
+  font: var(--halcyon-text-display);
+  letter-spacing: -0.02em;
+}
+
+.halcyon-cove-title {
+  font: var(--halcyon-text-headline);
+  color: #e6e3dc;
+  margin: 0;
+}
+
+.halcyon-cove-prose {
+  font: var(--halcyon-text-body-lg);
+  line-height: 1.55;
+  color: #c4c2bc;
+}
+
+.halcyon-cove-prose a {
+  color: #8da9c4;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.halcyon-cove-actions {
+  display: flex;
+  gap: var(--halcyon-space-3);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.halcyon-cove-action {
+  appearance: none;
+  background: transparent;
+  border: var(--halcyon-stroke-thin) solid #8da9c4;
+  color: #c4d2e0;
+  padding: var(--halcyon-space-2) var(--halcyon-space-4);
+  border-radius: var(--halcyon-radius-pill);
+  font: var(--halcyon-text-body);
+  cursor: pointer;
+  transition: background var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+
+.halcyon-cove-action:hover {
+  background: rgba(141, 169, 196, 0.1);
+}
+
+.halcyon-cove-action:focus-visible {
+  outline: 2px solid #8da9c4;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .halcyon-cove-action {
+    transition: none;
+  }
+}

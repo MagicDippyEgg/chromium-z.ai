@@ -1,0 +1,205 @@
+/* halcyon_settings_shared.css — shared layout primitives for chrome://settings.
+ *
+ * Settings has a 200px left-rail ToC, a 720px content column, and a search
+ * field at the top. Section rows are noun-phrase titles with one-sentence
+ * descriptions; toggles are simple On/Off pills.
+ *
+ * Page-specific tweaks live in halcyon_settings/settings.css. This file
+ * owns the structural layout.
+ */
+
+body.halcyon-settings {
+  min-height: 100vh;
+  background: var(--halcyon-bg);
+  color: var(--halcyon-text);
+  font: var(--halcyon-text-body);
+}
+
+.halcyon-settings-header {
+  border-bottom: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  background: var(--halcyon-surface);
+  padding: var(--halcyon-space-5) var(--halcyon-space-6);
+}
+
+.halcyon-settings-header-inner {
+  max-width: 920px;
+  margin: 0 auto;
+  display: flex;
+  align-items: baseline;
+  gap: var(--halcyon-space-4);
+  flex-wrap: wrap;
+}
+
+.halcyon-settings-title {
+  font: var(--halcyon-text-headline);
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.halcyon-settings-search {
+  flex: 1 1 auto;
+  min-width: 240px;
+  height: 32px;
+  background: var(--halcyon-bg);
+  border: var(--halcyon-stroke-thin) solid var(--halcyon-border);
+  border-radius: var(--halcyon-radius-pill);
+  padding: 0 var(--halcyon-space-4);
+  font: var(--halcyon-text-body);
+  color: var(--halcyon-text);
+  outline: none;
+  transition: border-color var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+
+.halcyon-settings-search:focus {
+  border-color: var(--halcyon-accent);
+}
+
+.halcyon-settings-body {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: var(--halcyon-space-6);
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: var(--halcyon-space-7);
+}
+
+.halcyon-settings-toc {
+  position: sticky;
+  top: var(--halcyon-space-6);
+  align-self: start;
+  font: var(--halcyon-text-body);
+}
+
+.halcyon-settings-toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--halcyon-space-1);
+}
+
+.halcyon-settings-toc a {
+  display: block;
+  padding: var(--halcyon-space-1) var(--halcyon-space-2);
+  color: var(--halcyon-text-2);
+  text-decoration: none;
+  border-radius: var(--halcyon-radius-sm);
+  transition: color var(--halcyon-dur-fast) var(--halcyon-ease),
+              background var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+
+.halcyon-settings-toc a:hover {
+  color: var(--halcyon-text);
+  background: var(--halcyon-surface);
+}
+
+.halcyon-settings-toc a[aria-current="true"] {
+  color: var(--halcyon-accent-text);
+  background: var(--halcyon-accent-soft);
+  font-weight: 500;
+}
+
+/* A settings section. */
+.halcyon-settings-section {
+  margin-bottom: var(--halcyon-space-8);
+  scroll-margin-top: var(--halcyon-space-7);
+}
+
+.halcyon-settings-section-title {
+  font: var(--halcyon-text-title);
+  margin: 0 0 var(--halcyon-space-4);
+  color: var(--halcyon-text);
+}
+
+/* A settings row: title + description + control. */
+.halcyon-settings-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--halcyon-space-4);
+  padding: var(--halcyon-space-3) 0;
+  border-bottom: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+}
+
+.halcyon-settings-row:last-child {
+  border-bottom: none;
+}
+
+.halcyon-settings-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--halcyon-space-1);
+}
+
+.halcyon-settings-row-title {
+  font: var(--halcyon-text-subtitle);
+  color: var(--halcyon-text);
+}
+
+.halcyon-settings-row-description {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-2);
+}
+
+/* The On/Off toggle pill. */
+.halcyon-settings-toggle {
+  display: inline-flex;
+  background: var(--halcyon-surface-2);
+  border-radius: var(--halcyon-radius-pill);
+  padding: 2px;
+  cursor: pointer;
+}
+
+.halcyon-settings-toggle-option {
+  padding: var(--halcyon-space-1) var(--halcyon-space-3);
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-2);
+  border: none;
+  background: transparent;
+  border-radius: var(--halcyon-radius-pill);
+  cursor: pointer;
+}
+
+.halcyon-settings-toggle-option[aria-pressed="true"] {
+  background: var(--halcyon-bg);
+  color: var(--halcyon-text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 720px) {
+  .halcyon-settings-body {
+    grid-template-columns: 1fr;
+  }
+  .halcyon-settings-toc {
+    position: static;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  body.halcyon-settings {
+    background: var(--halcyon-eclipse-bg, #1a1c1f);
+    color: var(--halcyon-eclipse-text, #e6e3dc);
+  }
+  .halcyon-settings-header {
+    background: var(--halcyon-eclipse-surface, #212428);
+    border-color: var(--halcyon-eclipse-border-soft, #2a2d32);
+  }
+  .halcyon-settings-search {
+    background: var(--halcyon-eclipse-surface, #212428);
+    border-color: var(--halcyon-eclipse-border, #3a3d43);
+  }
+  .halcyon-settings-toggle {
+    background: var(--halcyon-eclipse-surface-2, #2a2d32);
+  }
+  .halcyon-settings-toggle-option[aria-pressed="true"] {
+    background: var(--halcyon-eclipse-bg, #1a1c1f);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .halcyon-settings-search,
+  .halcyon-settings-toc a {
+    transition: none;
+  }
+}

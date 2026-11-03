@@ -304,3 +304,134 @@ Halcyon's approach is conceptually identical.
 For Halcyon-specific questions: file an issue in this repo.
 For upstream Chromium build questions: see
 https://www.chromium.org/developers/.
+
+---
+
+## Verifying the design without building
+
+If you want to see what the Halcyon chrome looks like without the
+~6–12-hour build, open this file in any modern browser:
+
+```
+halcyon/preview/halcyon_preview.html
+```
+
+It's a self-contained HTML file (no external dependencies). It renders
+the slim window frame, the calm tab strip, the sage toolbar with the
+breathing Lantern indicator, the omnibox with a Margin Notes mark, and
+the Plume NTP behind it. Every color and motion value in the preview is
+a faithful copy of `halcyon/design/design_tokens.css`; the C++ side
+mirrors the same values via `halcyon/src/ui/base/halcyon_color_palette.h`.
+
+The preview responds to `prefers-color-scheme` — switch your OS to dark
+mode (or use your browser's dev-tools "emulate media" panel) to see
+the Eclipse theme.
+
+Click anywhere outside the Lantern to toggle its breathing animation
+on and off — the Lantern only animates when there's something to know
+about.
+
+## Verifying the design system is in sync
+
+Before each commit, run the design-system consistency checker:
+
+```
+python3 halcyon/design/verify_tokens.py
+```
+
+The script parses both `halcyon/design/design_tokens.css` and
+`halcyon/src/ui/base/halcyon_color_palette.h` and exits non-zero if any
+color has a different value in the two files. Warnings about asymmetry
+(colors defined in one file but not the other) are printed but don't
+fail the check — they're documented in `halcyon/branding/color_system.md`
+as deliberate aliases.
+
+The script is intentionally a single Python file with no third-party
+imports; it runs on the Python that ships with the OS.
+
+## Verifying the WebUI pages without building
+
+Each Halcyon WebUI page is a small HTML/CSS/JS app that talks to the
+C++ side via `chrome.send`. To verify the pages render correctly
+without building:
+
+1. Open the HTML file directly in a browser (it works without
+   `chrome://` because the JS gracefully degrades when `chrome.send`
+   isn't available — the page just shows the empty state).
+
+2. To exercise the chrome.send bridge, you can either:
+   - Build the browser (per Steps 1–6 above) and load the page in
+     the real chrome:// URL, or
+   - Mock the chrome.send calls from the dev-tools console. The pages
+     expose the `window.halcyon.<callbackName>` functions; calling
+     them with synthetic data is the simplest way to see the page
+     in a populated state. For example, on the Lantern Report page:
+
+     ```javascript
+     window.halcyon.lanternReport({
+       rangeStart: Date.now() - 7 * 24 * 60 * 60 * 1000,
+       rangeEnd:   Date.now(),
+       summary:    "This week, Halcyon blocked 47 trackers and 12 cookies.",
+       breakdown: [
+         {label: "Trackers blocked",       count: 47, weight: 1.0},
+         {label: "Third-party cookies",    count: 12, weight: 0.3},
+         {label: "Fingerprinting",         count:  3, weight: 0.1},
+         {label: "Permission prompts",     count:  0, weight: 0.0},
+         {label: "Autoplay muted",         count:  4, weight: 0.1},
+       ],
+       sites: [
+         {origin: "example.com",     total: 12, items: ["6 trackers", "4 cookies", "2 fingerprinting"]},
+         {origin: "news.example.com", total:  8, items: ["4 trackers", "4 cookies"]},
+       ],
+     });
+     ```
+
+   This is the pattern every Halcyon WebUI page follows: the JS side
+   exposes `window.halcyon.<name>(<data>)` and the C++ side calls those
+   functions with real data once the user opens the page in the actual
+   browser.
+
+## Verifying the patches apply cleanly
+
+If you want to verify that the patches in `patches/` still apply
+against a given Chromium revision without doing a full build:
+
+```
+cd /path/to/chromium/src
+git fetch origin main
+git checkout origin/main
+
+# Apply the Halcyon source tree:
+rsync -av /path/to/halcyon/src/ .
+
+# Try each patch in turn:
+for p in /path/to/halcyon/patches/*.patch; do
+  echo "--- $p ---"
+  git apply --check "$p" || echo "FAILED: $p"
+done
+```
+
+If a patch fails to apply, the manual change is described at the top
+of the patch file (under the `---`/`+++`/`@@` lines). The patches are
+intentionally minimal — most only touch a few lines.
+
+If a patch has rotted significantly, re-create it with `git diff` and
+the same line numbers; the surrounding code in upstream Chromium is
+stable across releases.
+
+## Verifying the fonts are present
+
+The Halcyon bundle expects the OFL 1.1 fonts to live at
+`chrome/browser/resources/halcyon_shared/fonts/`. The build fails if
+any are missing.
+
+To download them all (from Google Fonts):
+
+```
+python3 halcyon/build/fetch_fonts.py
+```
+
+This downloads the four families (Inter, Inter Tight, Source Serif 4,
+JetBrains Mono) in their full weight range. The total is ~12 MB.
+The script is idempotent; it skips files that already exist.
+

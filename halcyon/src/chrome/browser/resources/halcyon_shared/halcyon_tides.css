@@ -1,0 +1,177 @@
+/* halcyon_tides.css — shared layout primitives for chrome://history (Tides).
+ *
+ * Tides is history as a tide table: per-day expandable sections, each row
+ * showing site origin + visit count + "weight" bar (proportional to time
+ * spent). The user can "wash away" specific sites.
+ *
+ * Page-specific tweaks live in halcyon_tides/tides.css.
+ */
+
+body.halcyon-tides {
+  min-height: 100vh;
+  background: var(--halcyon-bg);
+  color: var(--halcyon-text);
+  font: var(--halcyon-text-body);
+  display: flex;
+  flex-direction: column;
+}
+
+.halcyon-tides-header {
+  border-bottom: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  background: var(--halcyon-surface);
+  padding: var(--halcyon-space-5) var(--halcyon-space-6);
+}
+
+.halcyon-tides-header-inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.halcyon-tides-title {
+  font: var(--halcyon-text-headline);
+  margin: 0 0 var(--halcyon-space-3);
+}
+
+.halcyon-tides-search {
+  width: 100%;
+  height: 32px;
+  background: var(--halcyon-bg);
+  border: var(--halcyon-stroke-thin) solid var(--halcyon-border);
+  border-radius: var(--halcyon-radius-pill);
+  padding: 0 var(--halcyon-space-4);
+  font: var(--halcyon-text-body);
+  color: var(--halcyon-text);
+  outline: none;
+}
+
+.halcyon-tides-search:focus {
+  border-color: var(--halcyon-accent);
+}
+
+.halcyon-tides-body {
+  flex: 1 1 auto;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--halcyon-space-6);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--halcyon-space-5);
+}
+
+/* A day group: collapsible header + list of site rows. */
+.halcyon-tides-day {
+  border: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  border-radius: var(--halcyon-radius-md);
+  background: var(--halcyon-surface);
+  overflow: hidden;
+}
+
+.halcyon-tides-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--halcyon-space-3);
+  padding: var(--halcyon-space-3) var(--halcyon-space-4);
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+.halcyon-tides-day-header:hover {
+  background: var(--halcyon-surface-2);
+}
+
+.halcyon-tides-day-title {
+  font: var(--halcyon-text-subtitle);
+  color: var(--halcyon-text);
+}
+
+.halcyon-tides-day-meta {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.halcyon-tides-day-list {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--halcyon-space-4) var(--halcyon-space-3);
+  flex-direction: column;
+  gap: var(--halcyon-space-2);
+}
+
+.halcyon-tides-day[aria-expanded="true"] .halcyon-tides-day-list {
+  display: flex;
+}
+
+.halcyon-tides-site-row {
+  display: grid;
+  grid-template-columns: 1fr 60px auto;
+  align-items: center;
+  gap: var(--halcyon-space-3);
+  padding: var(--halcyon-space-2) var(--halcyon-space-3);
+  border-radius: var(--halcyon-radius-sm);
+}
+
+.halcyon-tides-site-row:hover {
+  background: var(--halcyon-surface-2);
+}
+
+.halcyon-tides-site-origin {
+  font: var(--halcyon-text-body);
+  color: var(--halcyon-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.halcyon-tides-site-weight {
+  height: 6px;
+  background: var(--halcyon-surface-3);
+  border-radius: var(--halcyon-radius-pill);
+  overflow: hidden;
+}
+
+.halcyon-tides-site-weight-fill {
+  height: 100%;
+  background: var(--halcyon-accent);
+  border-radius: var(--halcyon-radius-pill);
+}
+
+.halcyon-tides-site-wash {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--halcyon-text-3);
+  font: var(--halcyon-text-caption);
+  cursor: pointer;
+  padding: var(--halcyon-space-1);
+  border-radius: var(--halcyon-radius-sm);
+}
+
+.halcyon-tides-site-wash:hover {
+  color: var(--halcyon-danger);
+  background: var(--halcyon-danger-soft);
+}
+
+@media (prefers-color-scheme: dark) {
+  body.halcyon-tides {
+    background: var(--halcyon-eclipse-bg, #1a1c1f);
+    color: var(--halcyon-eclipse-text, #e6e3dc);
+  }
+  .halcyon-tides-header,
+  .halcyon-tides-day {
+    background: var(--halcyon-eclipse-surface, #212428);
+    border-color: var(--halcyon-eclipse-border-soft, #2a2d32);
+  }
+  .halcyon-tides-day-header:hover,
+  .halcyon-tides-site-row:hover {
+    background: var(--halcyon-eclipse-surface-2, #2a2d32);
+  }
+}

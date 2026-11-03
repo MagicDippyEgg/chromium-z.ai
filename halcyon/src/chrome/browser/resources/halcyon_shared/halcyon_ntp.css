@@ -1,0 +1,53 @@
+/* halcyon_ntp.css — shared layout primitives for the Halcyon new tab page.
+ *
+ * The Plume is the only NTP, but it splits its styles into:
+ *   - halcyon_shared/halcyon_ntp.css  (this file — page-frame layout)
+ *   - halcyon_ntp/plume.css            (page-specific — Plume elements)
+ *
+ * This file owns the full-viewport background, the centered column
+ * constraints, and the common section spacing. The Plume-specific
+ * elements (greeting, quote, search field, intention, recent list) are
+ * styled in plume.css.
+ */
+
+body.halcyon-ntp {
+  min-height: 100vh;
+  background: var(--halcyon-bg);
+  color: var(--halcyon-text);
+  font: var(--halcyon-text-body);
+  position: relative;
+  overflow-x: hidden;
+}
+
+.halcyon-ntp-main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: calc(var(--halcyon-space-9) + var(--halcyon-space-7)) var(--halcyon-space-6) var(--halcyon-space-9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--halcyon-space-7);
+}
+
+/* Common NTP section spacing. */
+.halcyon-ntp-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--halcyon-space-3);
+}
+
+/* The mark (small Halcyon brand glyph, top center, not the focus). */
+.halcyon-ntp-mark {
+  color: var(--halcyon-accent);
+  opacity: 0.85;
+}
+
+/* Dark theme */
+@media (prefers-color-scheme: dark) {
+  body.halcyon-ntp {
+    background: var(--halcyon-eclipse-bg, #1a1c1f);
+    color: var(--halcyon-eclipse-text, #e6e3dc);
+  }
+}
