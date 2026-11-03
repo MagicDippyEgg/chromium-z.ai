@@ -171,18 +171,22 @@ jobs:
           mkdir -p "$CHROMIUM_SRC"
           cd "$CHROMIUM_SRC"
           git init
-          git remote add origin https://chromium.googlesource.com/chromium/src.git
-          # Partial clone: only the tree objects come down now; blobs come
-          # on checkout, but only for paths in the sparse-checkout set.
-          git fetch --depth 1 --filter=blob:none --sparse origin main
-          git checkout FETCH_HEAD
-          # Now expand the sparse-checkout set to include the directories
-          # our patches touch.
-          git sparse-checkout add \
+          # Set up the sparse-checkout pattern BEFORE the fetch, so the
+          # checkout only materialises files in the chosen directories.
+          # The patterns below use the "cone mode" (the default), which
+          # is directory-based and much faster than the regex mode.
+          git sparse-checkout init --cone
+          git sparse-checkout set \
             chrome/app \
             chrome/browser/ui \
             chrome/browser/themes \
             build/config
+          git remote add origin https://chromium.googlesource.com/chromium/src.git
+          # --filter=blob:none + --sparse: only the tree objects come
+          # down on fetch; only the blobs in the sparse-checkout cone
+          # come down on checkout.
+          git fetch --depth 1 --filter=blob:none origin main
+          git checkout FETCH_HEAD
           git log --oneline -1
           echo "=== fetched tree size ==="
           du -sh "$CHROMIUM_SRC" || true
