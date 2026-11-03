@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Cairn — Halcyon</title>
+
+  <link rel="stylesheet" href="chrome://resources/halcyon_shared/design_tokens.css">
+  <link rel="stylesheet" href="chrome://resources/halcyon_cairn/cairn.css">
+
+  <script src="chrome://resources/halcyon_shared/js/halcyon_theme.js" defer></script>
+  <script src="chrome://resources/halcyon_shared/js/halcyon_icon.js" defer></script>
+  <script src="chrome://resources/halcyon_cairn/cairn.js" type="module" defer></script>
+</head>
+<body class="halcyon-cairn">
+  <!--
+    Cairn — Halcyon bookmarks.
+
+    The page shows all of the user's cairns (named stacks) as cards. Each
+    card lists the bookmarks in that stack, newest at top. The user can:
+      - create a new cairn
+      - rename a cairn
+      - delete a cairn (the bookmarks inside move to "Unstacked")
+      - drag a bookmark between cairns
+      - click a bookmark to open it
+
+    There is no tree view, no folder hierarchy, no "Other bookmarks" /
+    "Bookmarks bar" / "Mobile bookmarks" structure. Halcyon cairns are
+    flat by design: the user makes stacks and that's it.
+  -->
+
+  <header class="halcyon-cairn-header">
+    <h1 class="halcyon-cairn-title">Cairn</h1>
+    <button class="halcyon-cairn-new" id="halcyon-cairn-new">
+      <halcyon-icon name="plus" size="16"></halcyon-icon>
+      <span>New cairn</span>
+    </button>
+  </header>
+
+  <main class="halcyon-cairn-main" id="halcyon-cairn-main">
+    <!-- cairn cards render here -->
+  </main>
+</body>
+</html>

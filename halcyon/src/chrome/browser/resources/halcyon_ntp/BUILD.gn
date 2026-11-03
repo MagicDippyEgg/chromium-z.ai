@@ -1,0 +1,83 @@
+# Copyright 2026 The Halcyon Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+#
+# Build configuration for the Plume — the Halcyon new tab page.
+#
+# This file is included from chrome/browser/ui/BUILD.gn via
+# `halcyon_ntp_target`. It defines a single web_resource target that bundles
+# the Plume's HTML, CSS, JS, JSON, and font files into chrome://resources/
+# halcyon_ntp/ at build time.
+#
+# The Plume's chrome:// URL is `chrome://newtab` (registered as an override of
+# the default Chrome NTP via WebUIURLLoaderSource — see
+# chrome/browser/ui/webui/halcyon_ntp_ui.cc).
+
+import("//third_party/blink/public/public_features.gni")
+import("//tools/grit/grit_rule.gni")
+import("//ui/webui/resources/tools/build_webui.gni")
+
+# Static assets shipped as-is.
+group("halcyon_ntp_resources") {
+  public_deps = [
+    ":halcyon_ntp_html",
+    ":halcyon_ntp_css",
+    ":halcyon_ntp_js",
+    ":halcyon_ntp_json",
+    "//chrome/browser/resources/halcyon_shared:halcyon_shared_resources",
+  ]
+}
+
+# Aggregate the HTML so chrome://resources/halcyon_ntp/plume.html is served.
+build_webui("halcyon_ntp_html") {
+  sources = [ "plume.html" ]
+  webui_path = "chrome://resources/halcyon_ntp/"
+}
+
+build_webui("halcyon_ntp_css") {
+  sources = [ "plume.css" ]
+  webui_path = "chrome://resources/halcyon_ntp/"
+}
+
+build_webui("halcyon_ntp_js") {
+  sources = [ "plume.js" ]
+  webui_path = "chrome://resources/halcyon_ntp/"
+  # Plume.js uses ES module syntax for top-level imports but is otherwise
+  # plain JS. Closure-compile only the parts that need it.
+  closure_compile = true
+}
+
+build_webui("halcyon_ntp_json") {
+  sources = [ "quotes.json" ]
+  webui_path = "chrome://resources/halcyon_ntp/"
+}
+
+# TypeScript definitions for the chrome.send bridge exposed by the C++ side.
+# These mirror the HalcyonNtpMessageHandler interface and are picked up by
+# ts_check() in the build_webui rule above.
+source_set("halcyon_ntp_ts_defs") {
+  sources = [ "plume.d.ts" ]
+}
+
+# C++ glue: registers chrome://newtab as the Plume, exposes the message
+# handler, and forwards to chrome://resources/halcyon_ntp/.
+source_set("halcyon_ntp_ui") {
+  sources = [
+    "halcyon_ntp_ui.cc",
+    "halcyon_ntp_ui.h",
+    "halcyon_ntp_message_handler.cc",
+    "halcyon_ntp_message_handler.h",
+  ]
+  deps = [
+    "//base",
+    "//chrome/browser/profiles:profile",
+    "//chrome/browser/ui/webui:web_ui_util",
+    "//chrome/common:constants",
+    "//content/public/browser",
+    "//ui/base",
+    "//ui/webui",
+    ":halcyon_ntp_resources",
+    ":halcyon_ntp_ts_defs",
+  ]
+  configs += [ "//build/config:features" ]
+}

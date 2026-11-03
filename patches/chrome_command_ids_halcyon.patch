@@ -1,0 +1,40 @@
+From: Halcyon Browser Project <halcyon@local>
+Date: Tue, 3 Nov 2026 09:00:00 +0000
+Subject: [PATCH] chrome_command_ids: Add Halcyon commands
+
+Adds the command IDs that Halcyon's menu and keyboard shortcuts reference.
+These are:
+  - IDC_HALCYON_TOGGLE_TIDEMARKS
+  - IDC_HALCYON_TOGGLE_QUIET_MODE
+  - IDC_HALCYON_OPEN_LANTERN
+  - IDC_HALCYON_OPEN_CAIRN
+  - IDC_HALCYON_OPEN_TIDES
+  - IDC_HALCYON_OPEN_COVE
+  - IDC_HALCYON_ADD_MARGIN_NOTE
+  - IDC_HALCYON_OPEN_QUILL
+
+The IDs are added at the end of the ChromeCommand enum so they don't
+conflict with any upstream IDs. The corresponding command handlers are
+implemented in HalcyonBrowserCommandController (new file in
+chrome/browser/ui/halcyon_browser_command_controller.cc).
+
+---
+ chrome/browser/ui/commands/chrome_command_ids.h | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/chrome/browser/ui/commands/chrome_command_ids.h b/chrome/browser/ui/commands/chrome_command_ids.h
+index 0000000..1111111 100644
+--- a/chrome/browser/ui/commands/chrome_command_ids.h
++++ b/chrome/browser/ui/commands/chrome_command_ids.h
+@@ -450,4 +450,14 @@ enum ChromeCommand {
+   ...
++  // Halcyon original features. (See brand_book.md §13.)
++  IDC_HALCYON_TOGGLE_TIDEMARKS,            // ⌘⇧L
++  IDC_HALCYON_TOGGLE_QUIET_MODE,            // ⌘⇧M
++  IDC_HALCYON_OPEN_LANTERN,                  // click the Lantern indicator
++  IDC_HALCYON_OPEN_CAIRN,                    // click the Cairn indicator
++  IDC_HALCYON_OPEN_TIDES,                    // ⌘Y
++  IDC_HALCYON_OPEN_COVE,                     // ⌘⇧N
++  IDC_HALCYON_ADD_MARGIN_NOTE,               // right-click → Add margin note
++  IDC_HALCYON_OPEN_QUILL,                     // ⌘⇧K
+ };

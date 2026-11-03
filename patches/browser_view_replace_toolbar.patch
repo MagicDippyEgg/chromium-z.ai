@@ -1,0 +1,41 @@
+From: Halcyon Browser Project <halcyon@local>
+Date: Tue, 3 Nov 2026 09:00:00 +0000
+Subject: [PATCH] browser_view: Use HalcyonToolbarView
+
+This patch replaces the upstream ToolbarView with HalcyonToolbarView in
+BrowserView. The Halcyon toolbar is a simpler, calmer chrome — see
+chrome/browser/ui/views/toolbar/halcyon_toolbar_view.h for details.
+
+The HalcyonToolbarView is created at the same point in BrowserView::Init()
+where the upstream ToolbarView is created. The HalcyonToolbarView owns the
+omnibox, the Lantern indicator, the Cairn indicator, and the menu button.
+
+The upstream ToolbarView class is left in place; Halcyon simply doesn't
+instantiate it. This keeps the patch mergeable across Chromium versions.
+
+---
+ chrome/browser/ui/views/frame/browser_view.cc | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
+index 0000000..1111111 100644
+--- a/chrome/browser/ui/views/frame/browser_view.cc
++++ b/chrome/browser/ui/views/frame/browser_view.cc
+@@ -45,6 +45,7 @@
+ #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
++#include "chrome/browser/ui/views/toolbar/halcyon_toolbar_view.h"
+
+@@ -410,8 +411,13 @@ void BrowserView::InitBrowserView() {
+   ...
+-  toolbar_ = AddChildView(std::make_unique<ToolbarView>(browser()));
+-  toolbar_->Init();
++  if (base::FeatureList::IsEnabled(features::kHalcyonUI)) {
++    halcyon_toolbar_ = AddChildView(std::make_unique<halcyon::HalcyonToolbarView>());
++    halcyon_toolbar_->Init(browser(), web_contents_);
++    toolbar_ = halcyon_toolbar_;
++  } else {
++    toolbar_ = AddChildView(std::make_unique<ToolbarView>(browser()));
++    toolbar_->Init();
++  }
+   ...
+ }

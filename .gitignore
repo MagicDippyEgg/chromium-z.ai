@@ -1,0 +1,20 @@
+# Build artifacts
+/out/
+/build/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Font files (downloaded by fetch_fonts.py)
+src/chrome/browser/resources/halcyon_shared/fonts/*.woff2
+
+# Logs
+*.log

@@ -1,0 +1,50 @@
+# Copyright 2026 The Halcyon Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("//tools/grit/grit_rule.gni")
+import("//ui/webui/resources/tools/build_webui.gni")
+
+group("halcyon_settings_resources") {
+  public_deps = [
+    ":halcyon_settings_html",
+    ":halcyon_settings_css",
+    ":halcyon_settings_js",
+    "//chrome/browser/resources/halcyon_shared:halcyon_shared_resources",
+  ]
+}
+
+build_webui("halcyon_settings_html") {
+  sources = [ "settings.html" ]
+  webui_path = "chrome://resources/halcyon_settings/"
+}
+
+build_webui("halcyon_settings_css") {
+  sources = [ "settings.css" ]
+  webui_path = "chrome://resources/halcyon_settings/"
+}
+
+build_webui("halcyon_settings_js") {
+  sources = [ "settings.js" ]
+  webui_path = "chrome://resources/halcyon_settings/"
+  closure_compile = true
+}
+
+source_set("halcyon_settings_ui") {
+  sources = [
+    "halcyon_settings_ui.cc",
+    "halcyon_settings_ui.h",
+    "halcyon_settings_message_handler.cc",
+    "halcyon_settings_message_handler.h",
+  ]
+  deps = [
+    "//base",
+    "//chrome/browser/profiles:profile",
+    "//chrome/browser/ui/webui:web_ui_util",
+    "//components/prefs",
+    "//content/public/browser",
+    "//ui/base",
+    "//ui/webui",
+    ":halcyon_settings_resources",
+  ]
+}

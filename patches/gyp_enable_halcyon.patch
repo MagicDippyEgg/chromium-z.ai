@@ -1,0 +1,65 @@
+From: Halcyon Browser Project <halcyon@local>
+Date: Tue, 3 Nov 2026 09:00:00 +0000
+Subject: [PATCH] gyp: Add enable_halcyon GN arg and Halcyon build targets
+
+This patch introduces the `enable_halcyon` GN arg and includes the Halcyon
+build targets in the chrome/browser/ui/BUILD.gn and
+chrome/browser/resources/*/BUILD.gn files when the arg is true.
+
+The arg defaults to false (so a default Chromium build still produces
+upstream Chrome); the Halcyon build instructions set it to true.
+
+---
+ build/config/features.gni                  | 4 ++++
+ chrome/browser/ui/BUILD.gn                 | 8 ++++++++
+ 2 files changed, 12 insertions(+)
+
+diff --git a/build/config/features.gni b/build/config/features.gni
+index 0000000..1111111 100644
+--- a/build/config/features.gni
++++ b/build/config/features.gni
+@@ -50,6 +50,10 @@ declare_args() {
+   # ...
++  # Halcyon: a calm browser built on Chromium. When true, the build
++  # produces the Halcyon browser instead of upstream Chrome.
++  enable_halcyon = false
++
++  # Halcyon: bundle the Halcyon fonts (Inter, Inter Tight, Source Serif 4,
++  # JetBrains Mono) into the build. Defaults to false; set to true in the
++  # Halcyon build.
++  halcyon_bundle_fonts = false
++
++  # Halcyon: the default search engine for new Halcyon users.
++  halcyon_default_search_engine = "duckduckgo"
++
++  # Halcyon: whether Quiet Mode is on by default for new users.
++  halcyon_quiet_mode_default = true
++  ...
+ }
+
+diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
+index 0000000..1111111 100644
+--- a/chrome/browser/ui/BUILD.gn
++++ b/chrome/browser/ui/BUILD.gn
+@@ -300,6 +300,14 @@ source_set("ui") {
+   ...
++  if (enable_halcyon) {
++    deps += [
++      "//chrome/browser/ui/views/frame:halcyon_browser_view",
++      "//chrome/browser/ui/views/toolbar:halcyon_toolbar_view",
++      "//chrome/browser/ui/views/tabs:halcyon_tab_strip",
++      "//chrome/browser/ui/views/tidemarks:halcyon_tidemarks_view",
++      "//chrome/browser/ui/views/privacy_lantern:halcyon_lantern_indicator",
++      "//chrome/browser/ui/views/bookmarks:halcyon_cairn_indicator",
++      "//chrome/browser/ui/views/location_bar:halcyon_omnibox_view",
++      "//chrome/browser/ui/webui:halcyon_ntp_ui",
++      "//chrome/browser/ui/webui:halcyon_settings_ui",
++      "//chrome/browser/ui/webui:halcyon_tides_ui",
++      "//chrome/browser/ui/webui:halcyon_cairn_ui",
++      "//chrome/browser/ui/webui:halcyon_cove_ui",
++      "//chrome/browser/ui/webui:halcyon_lantern_ui",
++      "//chrome/browser/themes:halcyon_theme",
++    ]
++  }
+   ...
+ }

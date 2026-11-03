@@ -1,0 +1,12 @@
+# Copyright 2026 The Halcyon Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that
+# can be found in the LICENSE file.
+
+# The Halcyon color palette header. Mirrors the CSS design tokens
+# in halcyon/design/design_tokens.css. See
+# halcyon/branding/color_system.md for the brand-level reference.
+
+source_set("halcyon_color_palette") {
+  sources = [ "halcyon_color_palette.h" ]
+  deps = [ "//third_party/skia" ]
+}

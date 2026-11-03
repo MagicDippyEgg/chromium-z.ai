@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+  Halcyon string overrides for upstream Chromium's chromium_strings.grd.
+
+  This file is a PATCH overlay (see patches/apply_string_overrides.py for the
+  application mechanism). For each message ID, we override the <message> body
+  with the Halcyon voice per brand_book.md §9 and §16. We also set
+  translateable="false" on messages that should NOT be translated (because
+  they're either already locale-aware from the C++ side, or because they're
+  the product name "Halcyon" which is the same in all locales).
+
+  Naming conventions:
+    - "Halcyon" is a proper noun and remains "Halcyon" in all locales. It is
+      not translated. We mark it as such throughout.
+    - The product is never referred to as "the Halcyon browser" or "your
+      Halcyon". Just "Halcyon".
+    - No exclamation marks anywhere.
+    - Short sentences, sentence case.
+
+  What's removed entirely (set to empty string, translateable="false"):
+    - "Welcome back. Pick up where you left off."
+    - "Make Chrome your default browser"
+    - All onboarding tour strings
+    - "What's New"
+    - "Send to your devices"
+    - "Cast…"
+
+  See brand_book.md §16 for the full list of removed strings.
+
+-->
+<grit-part>
+  <!-- ==== Application name & identity ==== -->
+
+  <message name="IDS_PRODUCT_NAME" desc="The Halcyon product name. Never translated.">
+    Halcyon
+  </message>
+
+  <message name="IDS_APPNAME_DISPLAY" desc="Window title (when no page is loaded).">
+    Halcyon
+  </message>
+
+  <message name="IDS_SHORT_PRODUCT_NAME" desc="Short form, used in compact contexts.">
+    Halcyon
+  </message>
+
+  <message name="IDS_SXS_PRODUCT_NAME" desc="The Halcyon stable-channel product name.">
+    Halcyon
+  </message>
+
+  <!-- ==== Window / tab titles ==== -->
+
+  <message name="IDS_BROWSER_WINDOW_TITLE_FORMAT" desc="Window title format when a page is loaded.">
+    <ph name="PAGE_TITLE">$1<ex>Example</ex></ph> — Halcyon
+  </message>
+
+  <!-- The em dash (—) is intentional and reflects brand voice. -->
+
+  <message name="IDS_NEW_TAB_TITLE" desc="Title of a new, unvisited tab.">
+    New tab
+  </message>
+
+  <message name="IDS_LOADING_TITLE" desc="Tab title while a page is loading.">
+    Loading…
+  </message>
+
+  <message name="IDS_TAB_CATASTROPHIC_FAILURE_TITLE" desc="Tab title when a tab crashed.">
+    This tab crashed
+  </message>
+
+  <!-- ==== The Plume (new tab page) ==== -->
+
+  <message name="IDS_NTP_GREETING_MORNING" desc="Plume greeting, morning.">
+    Good morning
+  </message>
+  <message name="IDS_NTP_GREETING_AFTERNOON" desc="Plume greeting, afternoon.">
+    Good afternoon
+  </message>
+  <message name="IDS_NTP_GREETING_EVENING" desc="Plume greeting, evening (used for both evening and night).">
+    Good evening
+  </message>
+
+  <message name="IDS_NTP_SEARCH_PLACEHOLDER" desc="Plume search field placeholder.">
+    Search or type a URL
+  </message>
+
+  <message name="IDS_NTP_INTENTION_LABEL" desc="Plume 'today's intention' label.">
+    Today
+  </message>
+
+  <message name="IDS_NTP_INTENTION_PLACEHOLDER" desc="Plume intention placeholder.">
+    a one-line intention for the day
+  </message>
+
+  <message name="IDS_NTP_RECENT_LABEL" desc="Plume 'recently visited' label.">
+    Recently
+  </message>
+
+  <message name="IDS_NTP_LANTERN_LINK" desc="Plume footer Lantern link.">
+    Lantern
+  </message>
+
+  <message name="IDS_NTP_COVE_LINK" desc="Plume footer Cove link.">
+    Cove
+  </message>
+
+  <!-- ==== The Cove (private browsing) ==== -->
+
+  <message name="IDS_COVE_TITLE" desc="The Cove greeting title.">
+    The Cove
+  </message>
+
+  <message name="IDS_COVE_INTRO" desc="The Cove explanation paragraph.">
+    Pages you open here won't be saved to your Tides, and downloads won't be
+    saved to your downloads list. Your bookmarks and existing settings still
+    work.
+  </message>
+
+  <message name="IDS_COVE_INTRO_2" desc="The Cove follow-up paragraph.">
+    When you close this window, what you did here is gone.
+  </message>
+
+  <message name="IDS_COVE_TAGLINE" desc="The Cove tagline (serif text).">
+    The Cove is the part of the beach where the tide doesn't reach.
+  </message>
+
+  <message name="IDS_COVE_FOOTER" desc="The Cove footer (small dim text).">
+    Halcyon doesn't store anything from the Cove.
+    Your internet provider and the sites you visit can still see your activity.
+  </message>
+
+  <message name="IDS_COVE_OPEN_PLUME" desc="The Cove 'open the Plume' button.">
+    Open the Plume
+  </message>
+
+  <message name="IDS_COVE_SETTINGS" desc="The Cove settings button.">
+    Cove settings
+  </message>
+
+  <!-- Halcyon replaces IDS_NEW_INCOGNITO_WINDOW_TITLE with the Cove. -->
+  <message name="IDS_NEW_INCOGNITO_WINDOW_TITLE" desc="" translateable="false">
+    New Cove window
+  </message>
+
+  <!-- ==== Toolbar / menu ==== -->
+
+  <message name="IDS_APP_MENU_TOOLTIP" desc="Tooltip on the Halcyon menu button.">
+    Menu
+  </message>
+
+  <message name="IDS_NEW_TAB" desc="New tab menu item.">
+    New tab
+  </message>
+
+  <message name="IDS_NEW_WINDOW" desc="New window menu item.">
+    New window
+  </message>
+
+  <message name="IDS_NEW_INCOGNITO_WINDOW" desc="New Cove window menu item.">
+    New Cove window
+  </message>
+
+  <message name="IDS_TIDEMARKS_MENU_ITEM" desc="Tidemarks menu item.">
+    Tidemarks
+  </message>
+
+  <message name="IDS_QUIET_MODE_MENU_ITEM" desc="Quiet Mode menu item.">
+    Quiet Mode
+  </message>
+
+  <message name="IDS_HISTORY_MENU_ITEM" desc="History (Tides) menu item.">
+    Tides
+  </message>
+
+  <message name="IDS_BOOKMARKS_MENU_ITEM" desc="Bookmarks (Cairn) menu item.">
+    Cairn
+  </message>
+
+  <message name="IDS_DOWNLOADS_MENU_ITEM" desc="Downloads menu item.">
+    Downloads
+  </message>
+
+  <message name="IDS_MARGIN_NOTES_FOR_PAGE" desc="Margin notes for this page menu item.">
+    Margin notes for this page
+  </message>
+
+  <message name="IDS_ADD_TO_CAIRN" desc="Add to a cairn menu item.">
+    Add to a cairn
+  </message>
+
+  <message name="IDS_SETTINGS_MENU_ITEM" desc="Settings menu item.">
+    Settings
+  </message>
+
+  <message name="IDS_ABOUT_MENU_ITEM" desc="About Halcyon menu item.">
+    About Halcyon
+  </message>
+
+  <message name="IDS_EXIT_MENU_ITEM" desc="Quit Halcyon menu item.">
+    Quit Halcyon
+  </message>
+
+  <!-- Removed (set to empty, translateable="false"). See brand_book.md §16. -->
+  <message name="IDS_WELCOME_BACK" desc="" translateable="false">
+  </message>
+  <message name="IDS_MAKE_CHROME_DEFAULT_BROWSER" desc="" translateable="false">
+  </message>
+  <message name="IDS_WHATS_NEW" desc="" translateable="false">
+  </message>
+  <message name="IDS_SEND_FEEDBACK" desc="" translateable="false">
+  </message>
+  <message name="IDS_SEND_TO_DEVICES" desc="" translateable="false">
+  </message>
+  <message name="IDS_CAST_MENU_ITEM" desc="" translateable="false">
+  </message>
+  <message name="IDS_QR_CODE_FOR_PAGE" desc="" translateable="false">
+  </message>
+
+  <!-- ==== Status & error pages ==== -->
+
+  <message name="IDS_LOAD_FAILED_BANNER" desc="Banner shown when a load failed.">
+    Couldn't load this page.
+  </message>
+
+  <message name="IDS_NET_ERROR_SUMMARY_NAME_NOT_RESOLVED" desc="Error: DNS lookup failed.">
+    Couldn't find <ph name="SITE">$1<ex>example.com</ex></ph>. Check the address or your connection.
+  </message>
+
+  <message name="IDS_NET_ERROR_SUMMARY_CONNECTION_FAILED" desc="Error: connection refused.">
+    <ph name="SITE">$1<ex>example.com</ex></ph> refused to connect.
+  </message>
+
+  <message name="IDS_NET_ERROR_SUMMARY_TIMED_OUT" desc="Error: connection timed out.">
+    <ph name="SITE">$1<ex>example.com</ex></ph> took too long to respond.
+  </message>
+
+  <message name="IDS_SSL_ERROR_SUMMARY" desc="Error: SSL cert invalid.">
+    <ph name="SITE">$1<ex>example.com</ex></ph>'s identity can't be verified. Don't enter passwords or payment details here.
+  </message>
+
+  <!-- ==== Crash & recovery ==== -->
+
+  <message name="IDS_CRASH_RECOVERY_TITLE" desc="Title shown when a tab crashed.">
+    This tab crashed.
+  </message>
+
+  <message name="IDS_CRASH_RECOVERY_MESSAGE" desc="Description.">
+    Reload the tab to try again.
+  </message>
+
+  <message name="IDS_CRASH_RECOVERY_BUTTON" desc="Button label.">
+    Reload
+  </message>
+
+  <!-- ==== Permissions ==== -->
+
+  <message name="IDS_PERMISSION_REQUEST_LOCATION" desc="Location permission request.">
+    <ph name="SITE">$1<ex>example.com</ex></ph> wants to know your location.
+  </message>
+
+  <message name="IDS_PERMISSION_REQUEST_NOTIFICATIONS" desc="Notifications permission request.">
+    <ph name="SITE">$1<ex>example.com</ex></ph> wants to send notifications.
+  </message>
+
+  <message name="IDS_PERMISSION_REQUEST_CAMERA" desc="Camera permission request.">
+    <ph name="SITE">$1<ex>example.com</ex></ph> wants to use your camera.
+  </message>
+
+  <message name="IDS_PERMISSION_REQUEST_MICROPHONE" desc="Microphone permission request.">
+    <ph name="SITE">$1<ex>example.com</ex></ph> wants to use your microphone.
+  </message>
+
+  <message name="IDS_PERMISSION_ALLOW_ONCE" desc="Allow-once button.">
+    Allow once
+  </message>
+
+  <message name="IDS_PERMISSION_BLOCK" desc="Block button. Bolded by default.">
+    Block
+  </message>
+
+  <!-- ==== Downloads ==== -->
+
+  <message name="IDS_DOWNLOAD_STATUS_ONGOING" desc="Download progress status.">
+    <ph name="FILE_NAME">$1<ex>report.pdf</ex></ph>
+  </message>
+
+  <message name="IDS_DOWNLOAD_STATUS_COMPLETE" desc="Download complete status.">
+    Downloaded.
+  </message>
+
+  <message name="IDS_DOWNLOAD_STATUS_FAILED" desc="Download failed status.">
+    <ph name="FILE_NAME">$1<ex>report.pdf</ex></ph> didn't download.
+  </message>
+
+  <message name="IDS_DOWNLOAD_OPEN" desc="Open downloaded file button.">
+    Open
+  </message>
+
+  <message name="IDS_DOWNLOAD_SHOW" desc="Show downloaded file in folder button.">
+    Show in folder
+  </message>
+
+  <message name="IDS_DOWNLOAD_CANCEL" desc="Cancel download button.">
+    Cancel
+  </message>
+
+  <!-- ==== Tides (history) ==== -->
+
+  <message name="IDS_TIDES_EMPTY" desc="Empty Tides state.">
+    Your Tides are empty.
+  </message>
+
+  <message name="IDS_TIDES_WASH_ALL_CONFIRM" desc="Wash all Tides confirmation.">
+    Wash all Tides? This can't be undone.
+  </message>
+
+  <message name="IDS_TIDES_WASH_DAY_CONFIRM" desc="Wash one day confirmation.">
+    Wash <ph name="DATE">$1<ex>Today</ex></ph>?
+  </message>
+
+  <message name="IDS_TIDES_WASH_SITE_CONFIRM" desc="Wash one site confirmation.">
+    Wash <ph name="URL">$1<ex>example.com</ex></ph>?
+Removes every visit to this site from Tides.
+  </message>
+
+  <!-- ==== Cairn (bookmarks) ==== -->
+
+  <message name="IDS_CAIRN_EMPTY" desc="Empty Cairn state.">
+    No cairns yet. Create one to start a stack.
+  </message>
+
+  <message name="IDS_CAIRN_NEW_PROMPT" desc="New cairn prompt.">
+    Name this cairn
+  </message>
+
+  <message name="IDS_CAIRN_DELETE_CONFIRM" desc="Delete cairn confirmation.">
+    Delete the "<ph name="NAME">$1<ex>Reading</ex></ph>" cairn? Items inside move to Unstacked.
+  </message>
+
+  <!-- ==== About ==== -->
+
+  <message name="IDS_ABOUT_VERSION" desc="About page version line.">
+    Version <ph name="VERSION">$1<ex>1.0.0</ex></ph>
+  </message>
+
+  <message name="IDS_ABOUT_DESCRIPTION" desc="About page description.">
+    Halcyon is a calm browser built on Chromium.
+  </message>
+
+  <message name="IDS_ABOUT_SOURCE_LINK" desc="About page source code link.">
+    Source code
+  </message>
+
+  <message name="IDS_ABOUT_RELEASE_NOTES_LINK" desc="About page release notes link.">
+    Release notes
+  </message>
+
+  <message name="IDS_ABOUT_REPORT_PROBLEM_LINK" desc="About page report problem link.">
+    Report a problem
+  </message>
+</grit-part>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Halcyon — The Plume</title>
+
+  <!-- Design tokens + theme controller. The C++ side injects these as
+       chrome://resources/halcyon_shared/...; the paths below match the
+       chrome://resources URL convention. -->
+  <link rel="stylesheet" href="chrome://resources/halcyon_shared/design_tokens.css">
+  <link rel="stylesheet" href="chrome://resources/halcyon_shared/halcyon_ntp.css">
+  <link rel="stylesheet" href="chrome://resources/halcyon_ntp/plume.css">
+
+  <script src="chrome://resources/halcyon_shared/js/halcyon_theme.js" defer></script>
+  <script src="chrome://resources/halcyon_shared/js/halcyon_icon.js" defer></script>
+  <script src="chrome://resources/halcyon_ntp/plume.js" type="module" defer></script>
+</head>
+<body class="halcyon-ntp">
+  <!-- The page is a single vertical center-aligned column.
+       It deliberately has very few elements; the Plume is mostly empty space. -->
+
+  <main class="halcyon-ntp-main" id="halcyon-ntp-main">
+
+    <!-- Brand mark, small, top center. Not the focus. -->
+    <div class="halcyon-ntp-mark" aria-hidden="true">
+      <halcyon-icon name="brand" size="28"></halcyon-icon>
+    </div>
+
+    <!-- Greeting + date -->
+    <section class="halcyon-ntp-greeting" aria-live="polite">
+      <h1 class="halcyon-ntp-greeting-text" id="halcyon-greeting">Good morning</h1>
+      <p class="halcyon-ntp-date" id="halcyon-date">Loading…</p>
+    </section>
+
+    <!-- Quote -->
+    <section class="halcyon-ntp-quote" aria-live="polite">
+      <blockquote id="halcyon-quote-text" class="halcyon-ntp-quote-text">
+        <!-- Quote is injected by JS -->
+      </blockquote>
+      <p class="halcyon-ntp-quote-attribution" id="halcyon-quote-attribution"></p>
+    </section>
+
+    <!-- Search field — a single, generous field. The user can press "/"
+         anywhere to focus it. -->
+    <section class="halcyon-ntp-search halcyon-focus-ring" id="halcyon-search-section">
+      <halcyon-icon name="plume-search" size="20" class="halcyon-ntp-search-icon" aria-hidden="true"></halcyon-icon>
+      <input
+        type="text"
+        id="halcyon-search-input"
+        class="halcyon-ntp-search-input"
+        placeholder="Search or type a URL"
+        autocomplete="off"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
+        aria-label="Search or type a URL"
+        role="combobox"
+        aria-expanded="false"
+        aria-controls="halcyon-search-suggestions"
+        aria-haspopup="listbox">
+      <ul
+        id="halcyon-search-suggestions"
+        class="halcyon-ntp-search-suggestions"
+        role="listbox"
+        aria-label="Suggestions"
+        hidden></ul>
+    </section>
+
+    <!-- Today's intention — a single line the user can write. Stored locally,
+         never synced. Persists for the calendar day; clears at local midnight.
+         The placeholder is in Drift and disappears once the user types. -->
+    <section class="halcyon-ntp-intention">
+      <label for="halcyon-intention-input" class="halcyon-ntp-intention-label">Today</label>
+      <input
+        type="text"
+        id="halcyon-intention-input"
+        class="halcyon-ntp-intention-input"
+        placeholder="a one-line intention for the day"
+        maxlength="120"
+        autocomplete="off"
+        spellcheck="true"
+        aria-label="Today's intention">
+      <p class="halcyon-ntp-intention-note" id="halcyon-intention-note"></p>
+    </section>
+
+    <!-- Recently visited — a small, plain list, hidden by default and
+         fading in on hover (or via keyboard focus). Never a grid. -->
+    <section
+      class="halcyon-ntp-recent"
+      id="halcyon-recent"
+      aria-label="Recently visited"
+      tabindex="0">
+      <p class="halcyon-ntp-recent-label">Recently</p>
+      <ol class="halcyon-ntp-recent-list" id="halcyon-recent-list" role="list"></ol>
+    </section>
+  </main>
+
+  <!-- Footer — only the Lantern link (to chrome://settings/privacy) and
+       the Cove link (to open a private window). Both are quiet links. -->
+  <footer class="halcyon-ntp-footer">
+    <a href="chrome://settings/privacy" class="halcyon-ntp-footer-link">
+      <halcyon-icon name="lantern" size="16"></halcyon-icon>
+      <span>Lantern</span>
+    </a>
+    <span class="halcyon-ntp-footer-sep" aria-hidden="true">·</span>
+    <a href="#" class="halcyon-ntp-footer-link" id="halcyon-open-cove">
+      <halcyon-icon name="cove" size="16"></halcyon-icon>
+      <span>Cove</span>
+    </a>
+  </footer>
+</body>
+</html>

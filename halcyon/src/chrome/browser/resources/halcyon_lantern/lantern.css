@@ -1,0 +1,108 @@
+/* The Lantern — popup styles. */
+
+.halcyon-lantern {
+  background: var(--halcyon-bg);
+  color: var(--halcyon-text);
+  font: var(--halcyon-text-body);
+  width: 320px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.halcyon-lantern-main {
+  display: flex;
+  flex-direction: column;
+  padding: var(--halcyon-space-4);
+  gap: var(--halcyon-space-3);
+}
+
+.halcyon-lantern-header {
+  display: flex;
+  align-items: center;
+  gap: var(--halcyon-space-2);
+  flex-wrap: wrap;
+}
+
+.halcyon-lantern-title {
+  font: var(--halcyon-text-subtitle);
+  color: var(--halcyon-text);
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--halcyon-space-2);
+}
+
+.halcyon-lantern-title halcyon-icon {
+  color: var(--halcyon-accent);
+}
+
+.halcyon-lantern-domain {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-2);
+  margin: 0 0 0 auto;
+}
+
+.halcyon-lantern-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--halcyon-space-1);
+}
+
+.halcyon-lantern-row {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  gap: var(--halcyon-space-3);
+  align-items: center;
+  padding: var(--halcyon-space-2) var(--halcyon-space-1);
+  border-bottom: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+}
+.halcyon-lantern-row:last-child { border-bottom: none; }
+
+.halcyon-lantern-row-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--halcyon-accent);
+  margin: 0 auto;
+}
+
+.halcyon-lantern-row-text {
+  font: var(--halcyon-text-body);
+  color: var(--halcyon-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.halcyon-lantern-row-action {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-link);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.halcyon-lantern-row-action:hover { text-decoration: underline; }
+
+.halcyon-lantern-empty {
+  font: var(--halcyon-text-body-lg);
+  color: var(--halcyon-text-2);
+  text-align: center;
+  padding: var(--halcyon-space-7) 0;
+  margin: 0;
+}
+
+.halcyon-lantern-footer {
+  border-top: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  padding-top: var(--halcyon-space-3);
+  text-align: center;
+}
+
+.halcyon-lantern-footer-link {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-2);
+}

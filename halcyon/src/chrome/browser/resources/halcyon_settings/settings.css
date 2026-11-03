@@ -1,0 +1,296 @@
+/* Halcyon Settings — styles.
+ *
+ * The settings page is two columns on wide screens:
+ *   - left rail: section table of contents (sticky)
+ *   - main column: the settings rows
+ *
+ * Each row follows the pattern: text (title + description) on the left,
+ * control on the right. Controls are selects, toggles, or buttons.
+ *
+ * The page uses generous spacing and sentence-case headings. No section
+ * icons — the section title alone is enough.
+ */
+
+.halcyon-settings {
+  background: var(--halcyon-bg);
+  color: var(--halcyon-text);
+  font: var(--halcyon-text-body);
+  min-height: 100vh;
+}
+
+/* --- Header --- */
+.halcyon-settings-header {
+  position: sticky;
+  top: 0;
+  background: var(--halcyon-bg);
+  border-bottom: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  z-index: 5;
+}
+
+.halcyon-settings-header-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--halcyon-space-4) var(--halcyon-space-6);
+  display: flex;
+  align-items: center;
+  gap: var(--halcyon-space-4);
+}
+
+.halcyon-settings-title {
+  font: var(--halcyon-text-headline);
+  margin: 0;
+}
+
+.halcyon-settings-search {
+  flex: 1 1 auto;
+  max-width: 360px;
+  margin-left: auto;
+}
+
+/* --- Body --- */
+.halcyon-settings-body {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--halcyon-space-6) var(--halcyon-space-6) var(--halcyon-space-9);
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: var(--halcyon-space-8);
+  align-items: start;
+}
+
+/* --- Table of contents --- */
+.halcyon-settings-toc {
+  position: sticky;
+  top: calc(var(--halcyon-space-7) + var(--halcyon-space-4));
+  align-self: start;
+}
+
+.halcyon-settings-toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--halcyon-space-1);
+}
+
+.halcyon-settings-toc a {
+  display: block;
+  padding: var(--halcyon-space-1) var(--halcyon-space-2);
+  color: var(--halcyon-text-2);
+  text-decoration: none;
+  font: var(--halcyon-text-body);
+  border-radius: var(--halcyon-radius-sm);
+  border-left: 2px solid transparent;
+  padding-left: var(--halcyon-space-2);
+  transition:
+    background var(--halcyon-dur-fast) var(--halcyon-ease),
+    color var(--halcyon-dur-fast) var(--halcyon-ease),
+    border-color var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+
+.halcyon-settings-toc a:hover {
+  color: var(--halcyon-text);
+  background: var(--halcyon-surface);
+}
+
+.halcyon-settings-toc a.active {
+  color: var(--halcyon-text);
+  border-left-color: var(--halcyon-accent);
+}
+
+/* --- Sections --- */
+.halcyon-settings-section {
+  margin-bottom: var(--halcyon-space-8);
+  scroll-margin-top: var(--halcyon-space-7);
+}
+
+.halcyon-settings-section-title {
+  font: var(--halcyon-text-title);
+  color: var(--halcyon-text);
+  margin: 0 0 var(--halcyon-space-4);
+  padding-bottom: var(--halcyon-space-2);
+  border-bottom: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+}
+
+.halcyon-settings-section-intro {
+  font: var(--halcyon-text-body-lg);
+  color: var(--halcyon-text-2);
+  margin: 0 0 var(--halcyon-space-5);
+  max-width: 60ch;
+}
+
+.halcyon-settings-sub-intro {
+  font: var(--halcyon-text-body);
+  margin-top: var(--halcyon-space-5);
+}
+
+/* --- Setting rows --- */
+.halcyon-setting-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--halcyon-space-4);
+  align-items: center;
+  padding: var(--halcyon-space-3) 0;
+  border-bottom: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+}
+
+.halcyon-setting-row:last-child {
+  border-bottom: none;
+}
+
+.halcyon-setting-row-text {
+  min-width: 0;
+}
+
+.halcyon-setting-row-title {
+  font: var(--halcyon-text-subtitle);
+  color: var(--halcyon-text);
+  margin: 0 0 var(--halcyon-space-1);
+}
+
+.halcyon-setting-row-desc {
+  font: var(--halcyon-text-body);
+  color: var(--halcyon-text-2);
+  margin: 0;
+  max-width: 60ch;
+}
+
+.halcyon-setting-row-control {
+  flex: 0 0 auto;
+  min-width: 200px;
+  justify-self: end;
+}
+
+/* Toggles: row-layout-friendly */
+.halcyon-setting-row-toggle .halcyon-setting-row-control {
+  min-width: 44px;
+  justify-self: end;
+}
+
+/* --- Color swatches (accent picker) --- */
+.halcyon-color-swatches {
+  display: flex;
+  gap: var(--halcyon-space-2);
+  justify-self: end;
+}
+
+.halcyon-color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--halcyon-radius-pill);
+  background: var(--swatch);
+  border: 2px solid var(--halcyon-bg);
+  box-shadow: 0 0 0 1px var(--halcyon-border);
+  cursor: pointer;
+  padding: 0;
+  transition: box-shadow var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+
+.halcyon-color-swatch:hover {
+  box-shadow: 0 0 0 1px var(--halcyon-text-3);
+}
+
+.halcyon-color-swatch[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--halcyon-text);
+}
+
+/* --- Buttons --- */
+.halcyon-settings-button {
+  composes: button;
+  padding: var(--halcyon-space-2) var(--halcyon-space-4);
+}
+
+.halcyon-settings-danger-button {
+  background: transparent;
+  color: var(--halcyon-danger);
+  border: 1px solid var(--halcyon-danger);
+  border-radius: var(--halcyon-radius-md);
+  padding: var(--halcyon-space-2) var(--halcyon-space-4);
+  cursor: pointer;
+  transition: background var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+.halcyon-settings-danger-button:hover {
+  background: var(--halcyon-danger-soft);
+}
+
+/* --- Links --- */
+.halcyon-settings-link {
+  color: var(--halcyon-link);
+  text-decoration: none;
+}
+.halcyon-settings-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* --- Keyboard hints --- */
+kbd {
+  font: var(--halcyon-text-caption);
+  font-family: var(--halcyon-font-mono);
+  background: var(--halcyon-surface);
+  border: 1px solid var(--halcyon-border);
+  border-bottom-width: 2px;
+  border-radius: var(--halcyon-radius-sm);
+  padding: 1px 5px;
+  color: var(--halcyon-text);
+  margin: 0 1px;
+}
+
+/* --- About section --- */
+.halcyon-settings-about {
+  text-align: center;
+  padding: var(--halcyon-space-7) 0;
+}
+
+.halcyon-settings-about-mark {
+  color: var(--halcyon-accent);
+  margin: 0 0 var(--halcyon-space-3);
+}
+
+.halcyon-settings-about-title {
+  font: var(--halcyon-text-display);
+  margin: 0 0 var(--halcyon-space-1);
+}
+
+.halcyon-settings-about-version {
+  font: var(--halcyon-text-body);
+  color: var(--halcyon-text-2);
+  margin: 0 0 var(--halcyon-space-4);
+}
+
+.halcyon-settings-about-text {
+  font: var(--halcyon-text-body-lg);
+  color: var(--halcyon-text);
+  margin: var(--halcyon-space-2) auto;
+  max-width: 60ch;
+}
+
+/* --- Responsive: collapse the ToC on narrow screens --- */
+@media (max-width: 720px) {
+  .halcyon-settings-body {
+    grid-template-columns: 1fr;
+    gap: var(--halcyon-space-4);
+  }
+  .halcyon-settings-toc {
+    position: static;
+    border-bottom: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+    padding-bottom: var(--halcyon-space-3);
+  }
+  .halcyon-settings-toc ul {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: var(--halcyon-space-1);
+    padding-bottom: var(--halcyon-space-1);
+  }
+  .halcyon-settings-toc a {
+    border-left: none;
+    white-space: nowrap;
+  }
+  .halcyon-setting-row {
+    grid-template-columns: 1fr;
+  }
+  .halcyon-setting-row-control {
+    justify-self: stretch;
+  }
+}

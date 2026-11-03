@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>The Cove</title>
+
+  <link rel="stylesheet" href="chrome://resources/halcyon_shared/design_tokens.css">
+  <link rel="stylesheet" href="chrome://resources/halcyon_shared/halcyon_cove.css">
+  <link rel="stylesheet" href="chrome://resources/halcyon_cove/cove.css">
+
+  <script src="chrome://resources/halcyon_shared/js/halcyon_theme.js" defer></script>
+  <script src="chrome://resources/halcyon_shared/js/halcyon_icon.js" defer></script>
+  <script src="chrome://resources/halcyon_cove/cove.js" type="module" defer></script>
+</head>
+<body class="halcyon-cove" data-halcyon-theme="dark">
+  <!--
+    The Cove — Halcyon's private browsing start page.
+
+    The Cove uses the dark "Eclipse" palette regardless of the user's main
+    theme preference. This is the only Halcyon surface that overrides the
+    user's theme; it's a visual cue that this window is different.
+
+    The page is just text. No iconography of a spy, no scary disclaimer, no
+    "guest mode" prompt. The body copy explains plainly what the Cove is and
+    what it isn't.
+  -->
+
+  <main class="halcyon-cove-main">
+    <h1 class="halcyon-cove-title">The Cove</h1>
+
+    <p class="halcyon-cove-text">
+      Pages you open here won't be saved to your Tides, and downloads won't
+      be saved to your downloads list. Your bookmarks and existing settings
+      still work.
+    </p>
+
+    <p class="halcyon-cove-text">
+      When you close this window, what you did here is gone.
+    </p>
+
+    <p class="halcyon-cove-text halcyon-cove-text-muted">
+      The Cove is the part of the beach where the tide doesn't reach.
+    </p>
+
+    <p class="halcyon-cove-actions">
+      <a href="#" class="halcyon-cove-action" id="halcyon-cove-open-plume">
+        <halcyon-icon name="plume-search" size="20"></halcyon-icon>
+        <span>Open the Plume</span>
+      </a>
+      <a href="chrome://settings/cove" class="halcyon-cove-action">
+        <halcyon-icon name="settings" size="20"></halcyon-icon>
+        <span>Cove settings</span>
+      </a>
+    </p>
+  </main>
+
+  <footer class="halcyon-cove-footer">
+    <p class="halcyon-cove-footer-text">
+      Halcyon doesn't store anything from the Cove.
+      Your internet provider and the sites you visit can still see your activity.
+    </p>
+  </footer>
+</body>
+</html>

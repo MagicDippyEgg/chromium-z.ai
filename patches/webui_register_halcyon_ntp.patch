@@ -1,0 +1,51 @@
+From: Halcyon Browser Project <halcyon@local>
+Date: Tue, 3 Nov 2026 09:00:00 +0000
+Subject: [PATCH] webui: Register Halcyon NTP (the Plume) at chrome://newtab
+
+This patch replaces the upstream chrome://newtab WebUI registration with
+the Halcyon Plume. The Plume lives in chrome/browser/resources/halcyon_ntp/
+and is served by the HalcyonNtpUI controller in chrome/browser/ui/webui/
+
+When `enable_halcyon` is true (the default in the Halcyon build), the
+Plume is registered. When false, the upstream NTP is left untouched.
+
+The patch is intentionally minimal — the only thing it changes is the
+WebUI controller class that gets registered for the `chrome::kChromeUINewTabHost`
+URL. The Plume's HTML/CSS/JS and the HalcyonNtpMessageHandler are entirely
+new files (no upstream modification).
+
+Applies cleanly against Chromium at the time of writing (November 2026).
+If the surrounding code has shifted, the manual change is:
+  in chrome/browser/ui/webui/webui_configurations.cc,
+  find the block:
+    WebUIConfigurations::RegisterURLLoader(...)
+  and within it, change the NewTab registration to create
+  `new halcyon::HalcyonNtpUI()` instead of the upstream NewTabUI.
+
+---
+ chrome/browser/ui/webui/webui_configurations.cc | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/chrome/browser/ui/webui/webui_configurations.cc b/chrome/browser/ui/webui/webui_configurations.cc
+index 0000000..1111111 100644
+--- a/chrome/browser/ui/webui/webui_configurations.cc
++++ b/chrome/browser/ui/webui/webui_configurations.cc
+@@ -100,6 +100,7 @@
+ #include "chrome/browser/ui/webui/bookmarks/bookmarks_ui.h"
+ #include "chrome/browser/ui/webui/new_tab/new_tab_ui.h"
++#include "chrome/browser/ui/webui/halcyon_ntp_ui.h"
+
+ namespace chrome {
+
+@@ -233,7 +234,12 @@ void WebUIConfigurations::RegisterURLLoader(
+   // chrome://newtab
+-  RegisterWebUIConfig<NewTabUI>(chrome::kChromeUINewTabHost);
++  if (base::FeatureList::IsEnabled(features::kHalcyonUI)) {
++    RegisterWebUIConfig<halcyon::HalcyonNtpUI>(chrome::kChromeUINewTabHost);
++  } else {
++    RegisterWebUIConfig<NewTabUI>(chrome::kChromeUINewTabHost);
++  }
++
+   // chrome://settings
+   RegisterWebUIConfig<SettingsUI>(chrome::kChromeUISettingsHost);
+   // chrome://history

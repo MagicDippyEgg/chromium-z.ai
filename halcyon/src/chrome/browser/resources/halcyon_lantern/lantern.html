@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Lantern</title>
+
+  <link rel="stylesheet" href="chrome://resources/halcyon_shared/design_tokens.css">
+  <link rel="stylesheet" href="chrome://resources/halcyon_lantern/lantern.css">
+
+  <script src="chrome://resources/halcyon_shared/js/halcyon_theme.js" defer></script>
+  <script src="chrome://resources/halcyon_shared/js/halcyon_icon.js" defer></script>
+  <script src="chrome://resources/halcyon_lantern/lantern.js" type="module" defer></script>
+</head>
+<body class="halcyon-lantern">
+  <!--
+    The Lantern — a small, calm popup that shows what the current site is doing.
+
+    This page is rendered in a tight popup anchored to the Lantern indicator
+    button in the toolbar (similar to upstream's page-info bubble). The page
+    is loaded via chrome://lantern/ and the WebUI's width is fixed by the
+    native bubble to 320px.
+
+    The Lantern lists what the current site is doing in plain language. It
+    does NOT judge, it does NOT have a "Block all" red button, it does NOT
+    show a scary compliance list. Just: here's what's happening.
+
+    Each row has a small icon (the same dot), a one-line summary, and —
+    where applicable — a single quiet action like "Block third-party cookies
+    on this site".
+  -->
+
+  <main class="halcyon-lantern-main">
+    <header class="halcyon-lantern-header">
+      <h1 class="halcyon-lantern-title">
+        <halcyon-icon name="lantern" size="20"></halcyon-icon>
+        <span>Lantern</span>
+      </h1>
+      <p class="halcyon-lantern-domain" id="halcyon-lantern-domain">—</p>
+    </header>
+
+    <ul class="halcyon-lantern-rows" id="halcyon-lantern-rows"></ul>
+
+    <p class="halcyon-lantern-empty" id="halcyon-lantern-empty" hidden>
+      Nothing to report.
+    </p>
+
+    <footer class="halcyon-lantern-footer">
+      <a href="chrome://settings/lantern" class="halcyon-lantern-footer-link">Lantern settings</a>
+    </footer>
+  </main>
+</body>
+</html>

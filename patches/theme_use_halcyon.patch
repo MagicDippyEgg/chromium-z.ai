@@ -1,0 +1,33 @@
+From: Halcyon Browser Project <halcyon@local>
+Date: Tue, 3 Nov 2026 09:00:00 +0000
+Subject: [PATCH] theme: Use HalcyonNativeTheme and HalcyonTheme
+
+Replaces the upstream ThemeService's color resolution with the
+HalcyonTheme. The HalcyonTheme returns Halcyon's palette colors for any
+of the upstream color_id values (see
+chrome/browser/themes/halcyon_theme.cc for the mapping).
+
+When `enable_halcyon` is false, the upstream ThemeImpl is used unchanged.
+
+---
+ chrome/browser/themes/theme_service_factory.cc | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/chrome/browser/themes/theme_service_factory.cc b/chrome/browser/themes/theme_service_factory.cc
+index 0000000..1111111 100644
+--- a/chrome/browser/themes/theme_service_factory.cc
++++ b/chrome/browser/themes/theme_service_factory.cc
+@@ -15,6 +15,7 @@
+ #include "chrome/browser/themes/theme_service.h"
++#include "chrome/browser/themes/halcyon_theme.h"
+
+@@ -180,7 +181,12 @@ ThemeService* ThemeServiceFactory::GetForProfile(Profile* profile) {
+-  return static_cast<ThemeService*>(
+-      GetInstance()->GetServiceForProfile(profile, true));
++  if (base::FeatureList::IsEnabled(features::kHalcyonUI)) {
++    return &halcyon::HalcyonTheme::Get();
++  } else {
++    return static_cast<ThemeService*>(
++        GetInstance()->GetServiceForProfile(profile, true));
++  }
+ }

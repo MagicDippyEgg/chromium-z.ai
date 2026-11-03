@@ -1,0 +1,33 @@
+# Copyright 2026 The Halcyon Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Top-level Halcyon target group. Pulls in every Halcyon sub-target.
+# When enable_halcyon is true (see halcyon/build/halcyon_features.gni),
+# chrome/browser/ui/BUILD.gn adds this group as a dependency.
+
+import("halcyon/build/halcyon_features.gni")
+
+group("halcyon") {
+  if (enable_halcyon) {
+    deps = [
+      "//halcyon/build:halcyon_buildflags",
+      "//chrome/browser/themes:halcyon_theme",
+      "//chrome/browser/ui/views/frame:halcyon_browser_view",
+      "//chrome/browser/ui/views/toolbar:halcyon_toolbar_view",
+      "//chrome/browser/ui/views/tabs:halcyon_tab_strip",
+      "//chrome/browser/ui/views/tidemarks:halcyon_tidemarks_view",
+      "//chrome/browser/ui/views/privacy_lantern:halcyon_lantern_indicator",
+      "//chrome/browser/ui/views/bookmarks:halcyon_cairn_indicator",
+      "//chrome/browser/ui/views/location_bar:halcyon_omnibox_view",
+      "//chrome/browser/ui/webui:halcyon_ntp_ui",
+      "//chrome/browser/resources/halcyon_ntp:halcyon_ntp_resources",
+      "//chrome/browser/resources/halcyon_settings:halcyon_settings_resources",
+      "//chrome/browser/resources/halcyon_tides:halcyon_tides_resources",
+      "//chrome/browser/resources/halcyon_cairn:halcyon_cairn_resources",
+      "//chrome/browser/resources/halcyon_cove:halcyon_cove_resources",
+      "//chrome/browser/resources/halcyon_lantern:halcyon_lantern_resources",
+      "//chrome/browser/resources/halcyon_shared:halcyon_shared_resources",
+    ]
+  }
+}

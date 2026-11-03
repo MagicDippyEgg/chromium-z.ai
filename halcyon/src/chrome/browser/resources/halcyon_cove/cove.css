@@ -1,0 +1,106 @@
+/* The Cove — Halcyon private browsing greeting page.
+ *
+ * The Cove always uses the Eclipse palette. The page is mostly empty space
+ * with a single block of prose.
+ */
+
+.halcyon-cove {
+  background: var(--halcyon-cove-bg);
+  color: var(--halcyon-cove-text);
+  font: var(--halcyon-text-body-lg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.halcyon-cove-main {
+  max-width: 540px;
+  margin: 0 auto;
+  padding: calc(var(--halcyon-space-10) + var(--halcyon-space-6)) var(--halcyon-space-6) var(--halcyon-space-7);
+  flex: 1 1 auto;
+}
+
+.halcyon-cove-title {
+  font: var(--halcyon-text-display);
+  color: var(--halcyon-cove-text);
+  margin: 0 0 var(--halcyon-space-6);
+  letter-spacing: -0.01em;
+  animation: halcyon-fade-up var(--halcyon-dur-slow) var(--halcyon-ease) both;
+}
+
+.halcyon-cove-text {
+  font: var(--halcyon-text-body-lg);
+  color: var(--halcyon-cove-text);
+  margin: 0 0 var(--halcyon-space-5);
+  line-height: 1.6;
+  max-width: 60ch;
+  animation: halcyon-fade-up var(--halcyon-dur-slow) var(--halcyon-ease) 100ms both;
+}
+
+.halcyon-cove-text-muted {
+  font: var(--halcyon-text-serif);
+  color: var(--halcyon-text-2);
+  margin-top: var(--halcyon-space-6);
+  animation: halcyon-fade-up var(--halcyon-dur-slow) var(--halcyon-ease) 200ms both;
+}
+
+.halcyon-cove-actions {
+  display: flex;
+  gap: var(--halcyon-space-5);
+  margin-top: var(--halcyon-space-7);
+  animation: halcyon-fade-up var(--halcyon-dur-slow) var(--halcyon-ease) 300ms both;
+}
+
+.halcyon-cove-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--halcyon-space-2);
+  padding: var(--halcyon-space-2) var(--halcyon-space-4);
+  border: var(--halcyon-stroke-hairline) solid var(--halcyon-border);
+  border-radius: var(--halcyon-radius-md);
+  color: var(--halcyon-cove-text);
+  text-decoration: none;
+  transition:
+    background var(--halcyon-dur-fast) var(--halcyon-ease),
+    border-color var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+
+.halcyon-cove-action:hover {
+  background: var(--halcyon-surface-2);
+  border-color: var(--halcyon-border);
+  text-decoration: none;
+}
+
+.halcyon-cove-footer {
+  max-width: 540px;
+  margin: 0 auto;
+  padding: 0 var(--halcyon-space-6) var(--halcyon-space-6);
+}
+
+.halcyon-cove-footer-text {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-3);
+  margin: 0;
+  max-width: 60ch;
+  line-height: 1.5;
+}
+
+@keyframes halcyon-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .halcyon-cove-title,
+  .halcyon-cove-text,
+  .halcyon-cove-text-muted,
+  .halcyon-cove-actions {
+    animation: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .halcyon-cove-main { padding-top: var(--halcyon-space-8); }
+  .halcyon-cove-title { font: var(--halcyon-text-headline); }
+  .halcyon-cove-actions { flex-direction: column; }
+}

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Tides — Halcyon</title>
+
+  <link rel="stylesheet" href="chrome://resources/halcyon_shared/design_tokens.css">
+  <link rel="stylesheet" href="chrome://resources/halcyon_shared/halcyon_tides.css">
+  <link rel="stylesheet" href="chrome://resources/halcyon_tides/tides.css">
+
+  <script src="chrome://resources/halcyon_shared/js/halcyon_theme.js" defer></script>
+  <script src="chrome://resources/halcyon_shared/js/halcyon_icon.js" defer></script>
+  <script src="chrome://resources/halcyon_tides/tides.js" type="module" defer></script>
+</head>
+<body class="halcyon-tides">
+  <!--
+    Tides — Halcyon history, reimagined as a river.
+
+    The page is a vertical timeline. Each day is a section. Within a day, each
+    site is a horizontal bar whose width is proportional to the time the user
+    spent on it that day. The bars are sorted by time-spent descending, so the
+    biggest "tide pool" of the day is at the top.
+
+    Interactions:
+      - Click a bar: open that site in the current tab.
+      - Right-click a bar: open in new tab, copy URL, wash away (delete).
+      - Hover a bar: tooltip with exact time and visit count.
+      - "Wash away" button per day: delete the whole day's Tides.
+      - "Wash all" button at the top: delete everything.
+
+    There is NO grid, NO list-of-URLs, NO "search by date" calendar widget.
+    The page is just a river.
+  -->
+
+  <header class="halcyon-tides-header">
+    <h1 class="halcyon-tides-title">Tides</h1>
+    <div class="halcyon-tides-controls">
+      <input
+        type="search"
+        id="halcyon-tides-filter"
+        class="halcyon-tides-filter"
+        placeholder="Filter by site or page"
+        autocomplete="off"
+        spellcheck="false">
+      <button class="halcyon-tides-wash-all halcyon-settings-danger-button" id="halcyon-tides-wash-all">
+        Wash all
+      </button>
+    </div>
+  </header>
+
+  <main class="halcyon-tides-main" id="halcyon-tides-main">
+    <!-- The river. Days render here, most-recent first. -->
+    <p class="halcyon-tides-empty" id="halcyon-tides-empty" hidden>
+      Your Tides are empty.
+    </p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,150 @@
+/* Cairn — Halcyon bookmarks page. */
+
+.halcyon-cairn {
+  background: var(--halcyon-bg);
+  color: var(--halcyon-text);
+  font: var(--halcyon-text-body);
+  min-height: 100vh;
+}
+
+.halcyon-cairn-header {
+  position: sticky;
+  top: 0;
+  background: var(--halcyon-bg);
+  border-bottom: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  padding: var(--halcyon-space-4) var(--halcyon-space-6);
+  display: flex;
+  align-items: center;
+  gap: var(--halcyon-space-4);
+}
+
+.halcyon-cairn-title {
+  font: var(--halcyon-text-headline);
+  margin: 0;
+}
+
+.halcyon-cairn-new {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--halcyon-space-2);
+  padding: var(--halcyon-space-2) var(--halcyon-space-4);
+  background: var(--halcyon-accent);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--halcyon-radius-md);
+  cursor: pointer;
+  font: var(--halcyon-text-body);
+}
+:root[data-halcyon-theme="dark"] .halcyon-cairn-new { color: var(--halcyon-bg); }
+.halcyon-cairn-new:hover { background: var(--halcyon-accent-press); }
+
+.halcyon-cairn-main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--halcyon-space-7) var(--halcyon-space-6);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--halcyon-space-5);
+}
+
+/* --- Cairn card --- */
+.halcyon-cairn-card {
+  background: var(--halcyon-surface);
+  border: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  border-radius: var(--halcyon-radius-lg);
+  padding: var(--halcyon-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--halcyon-space-3);
+}
+
+.halcyon-cairn-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--halcyon-space-2);
+}
+
+.halcyon-cairn-card-icon {
+  color: var(--halcyon-text-2);
+  flex: 0 0 auto;
+}
+
+.halcyon-cairn-card-title {
+  font: var(--halcyon-text-subtitle);
+  color: var(--halcyon-text);
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+.halcyon-cairn-card-count {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-2);
+  margin: 0;
+}
+
+.halcyon-cairn-card-actions {
+  display: flex;
+  gap: var(--halcyon-space-1);
+  margin-left: auto;
+}
+
+.halcyon-cairn-card-action {
+  background: transparent;
+  border: none;
+  padding: var(--halcyon-space-1);
+  color: var(--halcyon-text-2);
+  cursor: pointer;
+  border-radius: var(--halcyon-radius-sm);
+}
+.halcyon-cairn-card-action:hover { color: var(--halcyon-text); background: var(--halcyon-surface-2); }
+.halcyon-cairn-card-action.danger:hover { color: var(--halcyon-danger); background: var(--halcyon-danger-soft); }
+
+.halcyon-cairn-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--halcyon-space-1);
+  min-height: 32px;
+}
+
+.halcyon-cairn-item {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: var(--halcyon-space-3);
+  align-items: center;
+  padding: var(--halcyon-space-2) var(--halcyon-space-1);
+  border-radius: var(--halcyon-radius-sm);
+  cursor: pointer;
+  transition: background var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+.halcyon-cairn-item:hover { background: var(--halcyon-surface-2); }
+
+.halcyon-cairn-item-favicon {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--halcyon-radius-sm);
+  background: var(--halcyon-surface-2);
+}
+
+.halcyon-cairn-item-title {
+  font: var(--halcyon-text-body);
+  color: var(--halcyon-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.halcyon-cairn-empty-card {
+  border-style: dashed;
+}
+
+.halcyon-cairn-empty {
+  text-align: center;
+  color: var(--halcyon-text-2);
+  font: var(--halcyon-text-body-lg);
+  padding: var(--halcyon-space-9) 0;
+  grid-column: 1 / -1;
+}

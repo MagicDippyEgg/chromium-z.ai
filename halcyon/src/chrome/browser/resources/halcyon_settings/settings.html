@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Halcyon Settings</title>
+
+  <link rel="stylesheet" href="chrome://resources/halcyon_shared/design_tokens.css">
+  <link rel="stylesheet" href="chrome://resources/halcyon_shared/halcyon_settings_shared.css">
+  <link rel="stylesheet" href="chrome://resources/halcyon_settings/settings.css">
+
+  <script src="chrome://resources/halcyon_shared/js/halcyon_theme.js" defer></script>
+  <script src="chrome://resources/halcyon_shared/js/halcyon_icon.js" defer></script>
+  <script src="chrome://resources/halcyon_settings/settings.js" type="module" defer></script>
+</head>
+<body class="halcyon-settings">
+  <!--
+    The Halcyon Settings page.
+
+    Layout:
+      - A single column, max-width 720px, centered.
+      - A left-rail table of contents that follows scroll (sticky), max-width 200px.
+      - On narrow screens, the ToC collapses into a "sections" menu at the top.
+
+    Sections (in order):
+      1.  Appearance
+      2.  Search
+      3.  Quiet Mode
+      4.  The Lantern (privacy)
+      5.  Tidemarks (vertical tabs)
+      6.  Tides (history)
+      7.  Cairn (bookmarks)
+      8.  Quill (notes)
+      9.  Downloads
+      10. The Cove (private browsing)
+      11. Anchored tabs
+      12. Languages
+      13. System (engine, performance, accessibility)
+      14. About Halcyon
+  -->
+
+  <header class="halcyon-settings-header">
+    <div class="halcyon-settings-header-inner">
+      <h1 class="halcyon-settings-title">Settings</h1>
+      <input
+        type="search"
+        id="halcyon-settings-search"
+        class="halcyon-settings-search"
+        placeholder="Search settings"
+        autocomplete="off"
+        spellcheck="false">
+    </div>
+  </header>
+
+  <div class="halcyon-settings-body">
+    <nav class="halcyon-settings-toc" id="halcyon-toc">
+      <ul>
+        <li><a href="#appearance">Appearance</a></li>
+        <li><a href="#search">Search</a></li>
+        <li><a href="#quiet-mode">Quiet Mode</a></li>
+        <li><a href="#lantern">The Lantern</a></li>
+        <li><a href="#tidemarks">Tidemarks</a></li>
+        <li><a href="#tides">Tides</a></li>
+        <li><a href="#cairn">Cairn</a></li>
+        <li><a href="#quill">Quill</a></li>
+        <li><a href="#downloads">Downloads</a></li>
+        <li><a href="#cove">The Cove</a></li>
+        <li><a href="#anchored-tabs">Anchored tabs</a></li>
+        <li><a href="#languages">Languages</a></li>
+        <li><a href="#system">System</a></li>
+        <li><a href="#about">About Halcyon</a></li>
+      </ul>
+    </nav>
+
+    <main class="halcyon-settings-main">
+
+      <!-- 1. Appearance -->
+      <section id="appearance" class="halcyon-settings-section">
+        <h2 class="halcyon-settings-section-title">Appearance</h2>
+
+        <div class="halcyon-setting-row">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Theme</p>
+            <p class="halcyon-setting-row-desc">Match the system, or choose a fixed theme.</p>
+          </div>
+          <select class="halcyon-setting-row-control" id="halcyon-setting-theme" data-pref="halcyon.appearance.theme">
+            <option value="system">System</option>
+            <option value="light">Light (Vellum)</option>
+            <option value="dark">Dark (Eclipse)</option>
+          </select>
+        </div>
+
+        <div class="halcyon-setting-row">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Accent color</p>
+            <p class="halcyon-setting-row-desc">Used for the Lantern glow, focus rings, and primary actions.</p>
+          </div>
+          <div class="halcyon-setting-row-control halcyon-color-swatches">
+            <button class="halcyon-color-swatch" data-value="sage" style="--swatch:#7A9B76"></button>
+            <button class="halcyon-color-swatch" data-value="tide" style="--swatch:#5B7C99"></button>
+            <button class="halcyon-color-swatch" data-value="ember" style="--swatch:#C4855C"></button>
+            <button class="halcyon-color-swatch" data-value="coral" style="--swatch:#B05945"></button>
+          </div>
+        </div>
+
+        <div class="halcyon-setting-row">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Tab strip position</p>
+            <p class="halcyon-setting-row-desc">Tabs run across the top by default. Turn on Tidemarks to use a vertical rail on the left edge.</p>
+          </div>
+          <select class="halcyon-setting-row-control" id="halcyon-setting-tabs" data-pref="halcyon.appearance.tabs">
+            <option value="top">Top</option>
+            <option value="left">Left (Tidemarks)</option>
+            <option value="right">Right</option>
+          </select>
+        </div>
+
+        <div class="halcyon-setting-row">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">UI font size</p>
+            <p class="halcyon-setting-row-desc">Halcyon uses 13px by default, slightly larger than other browsers.</p>
+          </div>
+          <select class="halcyon-setting-row-control" data-pref="halcyon.appearance.font_size">
+            <option value="12">Small (12px)</option>
+            <option value="13" selected>Default (13px)</option>
+            <option value="14">Large (14px)</option>
+            <option value="16">Extra large (16px)</option>
+          </select>
+        </div>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Use system title bar</p>
+            <p class="halcyon-setting-row-desc">On macOS and Windows, the system title bar takes up the top of the window. Turn this off to use Halcyon's slim frame.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.appearance.system_title_bar"></halcyon-toggle>
+        </div>
+      </section>
+
+      <!-- 2. Search -->
+      <section id="search" class="halcyon-settings-section">
+        <h2 class="halcyon-settings-section-title">Search</h2>
+
+        <div class="halcyon-setting-row">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Default search engine</p>
+            <p class="halcyon-setting-row-desc">Used when you type a search in the omnibox or on the Plume.</p>
+          </div>
+          <select class="halcyon-setting-row-control" data-pref="halcyon.search.default_engine">
+            <option value="duckduckgo">DuckDuckGo</option>
+            <option value="google">Google</option>
+            <option value="brave">Brave Search</option>
+            <option value="startpage">Startpage</option>
+            <option value="mojeek">Mojeek</option>
+            <option value="halcyon">Halcyon Search</option>
+          </select>
+        </div>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Show search suggestions</p>
+            <p class="halcyon-setting-row-desc">Suggestions are sent to your default search engine as you type. Turn off if you'd rather not.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.search.suggestions"></halcyon-toggle>
+        </div>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Open search results in a new tab</p>
+            <p class="halcyon-setting-row-desc">Clicking a search result opens it in a new tab, leaving the results page in place.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.search.open_results_in_new_tab" data-default="false"></halcyon-toggle>
+        </div>
+      </section>
+
+      <!-- 3. Quiet Mode -->
+      <section id="quiet-mode" class="halcyon-settings-section">
+        <h2 class="halcyon-settings-section-title">Quiet Mode</h2>
+
+        <p class="halcyon-settings-section-intro">
+          Quiet Mode mutes notifications, popups, and autoplay across all tabs.
+          It's on by default. You can toggle it any time with
+          <kbd>⌘</kbd><kbd>Shift</kbd><kbd>M</kbd>.
+        </p>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Quiet Mode</p>
+            <p class="halcyon-setting-row-desc">Mutes notifications, popups, and autoplay across all tabs.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.quiet_mode.enabled" data-default="true"></halcyon-toggle>
+        </div>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Suppress permission prompts</p>
+            <p class="halcyon-setting-row-desc">Sites asking for location, camera, or microphone are queued and shown in the Lantern instead of interrupting you.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.quiet_mode.suppress_permission_prompts" data-default="true"></halcyon-toggle>
+        </div>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Mute autoplay audio</p>
+            <p class="halcyon-setting-row-desc">Videos that would autoplay are loaded but muted. You can unmute the tab.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.quiet_mode.mute_autoplay" data-default="true"></halcyon-toggle>
+        </div>
+      </section>
+
+      <!-- 4. The Lantern -->
+      <section id="lantern" class="halcyon-settings-section">
+        <h2 class="halcyon-settings-section-title">The Lantern</h2>
+
+        <p class="halcyon-settings-section-intro">
+          The Lantern is a small indicator in the toolbar. It glows softly when
+          the current site is doing something you might want to know about.
+          It never alerts — it informs on demand.
+        </p>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Show the Lantern</p>
+            <p class="halcyon-setting-row-desc">Turn off to remove the Lantern entirely. Most users will want this on.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.lantern.show" data-default="true"></halcyon-toggle>
+        </div>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Watch third-party cookies</p>
+            <p class="halcyon-setting-row-desc">The Lantern lights up when a site sets a cookie on a third-party domain.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.lantern.watch_third_party_cookies" data-default="true"></halcyon-toggle>
+        </div>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Watch persistent storage</p>
+            <p class="halcyon-setting-row-desc">The Lantern lights up when a site uses LocalStorage, IndexedDB, or the Cache API beyond 5 MiB.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.lantern.watch_storage" data-default="true"></halcyon-toggle>
+        </div>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Watch fingerprinting APIs</p>
+            <p class="halcyon-setting-row-desc">The Lantern lights up when a site reads Canvas, WebGL, or AudioContext fingerprints.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.lantern.watch_fingerprinting" data-default="true"></halcyon-toggle>
+        </div>
+
+        <p class="halcyon-settings-section-intro halcyon-settings-sub-intro">
+          <a href="#" class="halcyon-settings-link" id="halcyon-lantern-report">Show this week's Lantern report</a>
+        </p>
+      </section>
+
+      <!-- 5. Tidemarks -->
+      <section id="tidemarks" class="halcyon-settings-section">
+        <h2 class="halcyon-settings-section-title">Tidemarks</h2>
+
+        <p class="halcyon-settings-section-intro">
+          Tidemarks shows your tabs as a vertical rail on the left edge of the
+          window. Inactive tabs visually recede. Toggle with
+          <kbd>⌘</kbd><kbd>Shift</kbd><kbd>L</kbd>.
+        </p>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Show Tidemarks</p>
+            <p class="halcyon-setting-row-desc">If on, tabs appear in a left rail instead of across the top.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.tidemarks.enabled" data-default="false"></halcyon-toggle>
+        </div>
+
+        <div class="halcyon-setting-row">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Rail width</p>
+            <p class="halcyon-setting-row-desc">How wide the Tidemarks rail is when not hovered.</p>
+          </div>
+          <select class="halcyon-setting-row-control" data-pref="halcyon.tidemarks.rail_width">
+            <option value="narrow">Narrow (48px)</option>
+            <option value="default" selected>Default (200px)</option>
+            <option value="wide">Wide (260px)</option>
+          </select>
+        </div>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Recede inactive tabs</p>
+            <p class="halcyon-setting-row-desc">Tabs you haven't looked at in a while fade to lower opacity until you focus them.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.tidemarks.recede_inactive" data-default="true"></halcyon-toggle>
+        </div>
+      </section>
+
+      <!-- 6. Tides (history) -->
+      <section id="tides" class="halcyon-settings-section">
+        <h2 class="halcyon-settings-section-title">Tides</h2>
+
+        <p class="halcyon-settings-section-intro">
+          Your browsing history is shown as Tides — a river of pages grouped by
+          day, with weight proportional to time spent.
+          <a href="chrome://tides" class="halcyon-settings-link">Open Tides</a>
+        </p>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Save Tides</p>
+            <p class="halcyon-setting-row-desc">If off, no pages are saved to your Tides. The Cove always doesn't.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.tides.save" data-default="true"></halcyon-toggle>
+        </div>
+
+        <div class="halcyon-setting-row">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Auto-wash after</p>
+            <p class="halcyon-setting-row-desc">Pages older than this are automatically removed from your Tides.</p>
+          </div>
+          <select class="halcyon-setting-row-control" data-pref="halcyon.tides.retention_days">
+            <option value="7">7 days</option>
+            <option value="30">30 days</option>
+            <option value="90" selected>90 days</option>
+            <option value="365">1 year</option>
+            <option value="0">Never</option>
+          </select>
+        </div>
+
+        <div class="halcyon-setting-row">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Wash all Tides</p>
+            <p class="halcyon-setting-row-desc">Remove every page from your Tides. This can't be undone.</p>
+          </div>
+          <button class="halcyon-settings-danger-button" id="halcyon-wash-tides">Wash all</button>
+        </div>
+      </section>
+
+      <!-- 7. Cairn -->
+      <section id="cairn" class="halcyon-settings-section">
+        <h2 class="halcyon-settings-section-title">Cairn</h2>
+
+        <p class="halcyon-settings-section-intro">
+          Bookmarks in Halcyon live in cairns — named stacks you can build and
+          arrange. The default bookmark action adds to your current cairn.
+          <a href="chrome://cairn" class="halcyon-settings-link">Open Cairn</a>
+        </p>
+
+        <div class="halcyon-setting-row">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Default cairn</p>
+            <p class="halcyon-setting-row-desc">Where new bookmarks land when you don't pick a cairn.</p>
+          </div>
+          <select class="halcyon-setting-row-control" data-pref="halcyon.cairn.default_cairn">
+            <!-- populated by JS -->
+          </select>
+        </div>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Show cairn icon in toolbar</p>
+            <p class="halcyon-setting-row-desc">A small cairn icon next to the Lantern that opens your stacks.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.cairn.show_in_toolbar" data-default="true"></halcyon-toggle>
+        </div>
+      </section>
+
+      <!-- 8. Quill -->
+      <section id="quill" class="halcyon-settings-section">
+        <h2 class="halcyon-settings-section-title">Quill</h2>
+
+        <p class="halcyon-settings-section-intro">
+          Quill is a small note-taking surface for jotting things from the page
+          you're reading. Open it on any page with
+          <kbd>⌘</kbd><kbd>Shift</kbd><kbd>N</kbd>.
+        </p>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Enable Quill</p>
+            <p class="halcyon-setting-row-desc">Turn off to disable the Quill shortcut and side panel.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.quill.enabled" data-default="true"></halcyon-toggle>
+        </div>
+
+        <div class="halcyon-setting-row">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Notes location</p>
+            <p class="halcyon-setting-row-desc">Quill notes are per-origin. Choose where they live.</p>
+          </div>
+          <select class="halcyon-setting-row-control" data-pref="halcyon.quill.storage">
+            <option value="local" selected>Local only</option>
+            <option value="sync">Sync across Halcyon devices</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- 9. Downloads -->
+      <section id="downloads" class="halcyon-settings-section">
+        <h2 class="halcyon-settings-section-title">Downloads</h2>
+
+        <div class="halcyon-setting-row">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Download location</p>
+            <p class="halcyon-setting-row-desc">Where downloaded files are saved.</p>
+          </div>
+          <button class="halcyon-setting-row-control halcyon-settings-button" id="halcyon-choose-download-folder">Choose…</button>
+        </div>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Ask where to save each file</p>
+            <p class="halcyon-setting-row-desc">A small dialog before each download. Off by default; turn on if you prefer.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.downloads.ask_each_time" data-default="false"></halcyon-toggle>
+        </div>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Show download bubble</p>
+            <p class="halcyon-setting-row-desc">A small indicator in the toolbar when a download finishes.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.downloads.show_indicator" data-default="true"></halcyon-toggle>
+        </div>
+      </section>
+
+      <!-- 10. The Cove -->
+      <section id="cove" class="halcyon-settings-section">
+        <h2 class="halcyon-settings-section-title">The Cove</h2>
+
+        <p class="halcyon-settings-section-intro">
+          The Cove is Halcyon's private browsing mode. Pages you open in the Cove
+          don't go to your Tides, don't leave cookies, and don't keep downloads.
+          Your existing bookmarks and settings still work.
+        </p>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Block third-party cookies in the Cove</p>
+            <p class="halcyon-setting-row-desc">On by default. The Cove is for private browsing.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.cove.block_third_party_cookies" data-default="true"></halcyon-toggle>
+        </div>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Allow extensions in the Cove</p>
+            <p class="halcyon-setting-row-desc">Off by default. Most extensions don't belong in private windows.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.cove.allow_extensions" data-default="false"></halcyon-toggle>
+        </div>
+      </section>
+
+      <!-- 11. Anchored tabs -->
+      <section id="anchored-tabs" class="halcyon-settings-section">
+        <h2 class="halcyon-settings-section-title">Anchored tabs</h2>
+
+        <p class="halcyon-settings-section-intro">
+          Anchored tabs stay open across sessions. Useful for web apps you
+          always keep open — mail, calendar, music. Right-click any tab to
+          anchor it.
+        </p>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Auto-restore anchored tabs on launch</p>
+            <p class="halcyon-setting-row-desc">When Halcyon opens, anchored tabs are restored. Other tabs aren't.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.anchored.restore_on_launch" data-default="true"></halcyon-toggle>
+        </div>
+
+        <div class="halcyon-setting-row">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Anchor group position</p>
+            <p class="halcyon-setting-row-desc">Where anchored tabs appear in the tab strip.</p>
+          </div>
+          <select class="halcyon-setting-row-control" data-pref="halcyon.anchored.position">
+            <option value="start" selected>Start (left)</option>
+            <option value="end">End (right)</option>
+            <option value="separate">Separate group</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- 12. Languages -->
+      <section id="languages" class="halcyon-settings-section">
+        <h2 class="halcyon-settings-section-title">Languages</h2>
+
+        <div class="halcyon-setting-row">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Display language</p>
+            <p class="halcyon-setting-row-desc">Halcyon's interface language. Restart to fully apply.</p>
+          </div>
+          <select class="halcyon-setting-row-control" data-pref="halcyon.languages.ui">
+            <!-- populated by JS -->
+          </select>
+        </div>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Offer to translate pages</p>
+            <p class="halcyon-setting-row-desc">When a page is in a language you don't read, offer to translate.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.languages.offer_translate" data-default="true"></halcyon-toggle>
+        </div>
+      </section>
+
+      <!-- 13. System -->
+      <section id="system" class="halcyon-settings-section">
+        <h2 class="halcyon-settings-section-title">System</h2>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Continue running in the background when closed</p>
+            <p class="halcyon-setting-row-desc">Lets notifications and downloads keep working after the window is closed. Off by default.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.system.background" data-default="false"></halcyon-toggle>
+        </div>
+
+        <div class="halcyon-setting-row halcyon-setting-row-toggle">
+          <div class="halcyon-setting-row-text">
+            <p class="halcyon-setting-row-title">Use hardware acceleration when available</p>
+            <p class="halcyon-setting-row-desc">Recommended on for most users. Turn off if you see rendering glitches.</p>
+          </div>
+          <halcyon-toggle data-pref="halcyon.system.hardware_accel" data-default="true"></halcyon-toggle>
+        </div>
+
+        <p class="halcyon-settings-section-intro">
+          <a href="#" class="halcyon-settings-link" id="halcyon-open-dev-tools">Open developer tools</a>
+        </p>
+      </section>
+
+      <!-- 14. About -->
+      <section id="about" class="halcyon-settings-section halcyon-settings-about">
+        <halcyon-icon name="brand" size="48" class="halcyon-settings-about-mark"></halcyon-icon>
+        <h2 class="halcyon-settings-about-title">Halcyon</h2>
+        <p class="halcyon-settings-about-version" id="halcyon-version">Version 1.0.0</p>
+
+        <p class="halcyon-settings-about-text">
+          Halcyon is a calm browser built on Chromium. The engine is Blink; the
+          JavaScript engine is V8. Halcyon's modifications are © The Halcyon
+          Authors and licensed under the same BSD 3-Clause License as Chromium.
+        </p>
+
+        <p class="halcyon-settings-about-text">
+          <a href="https://github.com/halcyon-browser/halcyon" class="halcyon-settings-link">Source code</a>
+          &nbsp;·&nbsp;
+          <a href="#" class="halcyon-settings-link" id="halcyon-about-release-notes">Release notes</a>
+          &nbsp;·&nbsp;
+          <a href="#" class="halcyon-settings-link" id="halcyon-about-report-problem">Report a problem</a>
+        </p>
+      </section>
+
+    </main>
+  </div>
+</body>
+</html>

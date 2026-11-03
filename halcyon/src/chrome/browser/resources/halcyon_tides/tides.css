@@ -1,0 +1,206 @@
+/* Tides — Halcyon history page. */
+
+.halcyon-tides {
+  background: var(--halcyon-bg);
+  color: var(--halcyon-text);
+  font: var(--halcyon-text-body);
+  min-height: 100vh;
+}
+
+.halcyon-tides-header {
+  position: sticky;
+  top: 0;
+  background: var(--halcyon-bg);
+  border-bottom: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  padding: var(--halcyon-space-4) var(--halcyon-space-6);
+  display: flex;
+  align-items: center;
+  gap: var(--halcyon-space-4);
+  z-index: 5;
+}
+
+.halcyon-tides-title {
+  font: var(--halcyon-text-headline);
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.halcyon-tides-controls {
+  display: flex;
+  gap: var(--halcyon-space-3);
+  margin-left: auto;
+  align-items: center;
+}
+
+.halcyon-tides-filter {
+  width: 320px;
+  max-width: 40vw;
+}
+
+/* --- River --- */
+.halcyon-tides-main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--halcyon-space-7) var(--halcyon-space-6) var(--halcyon-space-9);
+}
+
+.halcyon-tides-empty {
+  text-align: center;
+  color: var(--halcyon-text-2);
+  font: var(--halcyon-text-body-lg);
+  margin-top: var(--halcyon-space-9);
+}
+
+/* --- Day section --- */
+.halcyon-tides-day {
+  margin-bottom: var(--halcyon-space-7);
+}
+
+.halcyon-tides-day-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--halcyon-space-3);
+  padding-bottom: var(--halcyon-space-2);
+  border-bottom: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  margin-bottom: var(--halcyon-space-4);
+}
+
+.halcyon-tides-day-title {
+  font: var(--halcyon-text-title);
+  color: var(--halcyon-text);
+  margin: 0;
+}
+
+.halcyon-tides-day-meta {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-2);
+  margin-left: auto;
+}
+
+.halcyon-tides-day-wash {
+  background: transparent;
+  border: none;
+  color: var(--halcyon-text-2);
+  cursor: pointer;
+  font: var(--halcyon-text-caption);
+  padding: 0;
+}
+.halcyon-tides-day-wash:hover { color: var(--halcyon-danger); }
+
+/* --- Site bars --- */
+.halcyon-tides-bar {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  gap: var(--halcyon-space-3);
+  align-items: center;
+  padding: var(--halcyon-space-2) 0;
+  cursor: pointer;
+  border-radius: var(--halcyon-radius-sm);
+  transition: background var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+
+.halcyon-tides-bar:hover {
+  background: var(--halcyon-surface);
+}
+
+.halcyon-tides-favicon {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--halcyon-radius-sm);
+  background: var(--halcyon-surface-2);
+}
+
+.halcyon-tides-bar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.halcyon-tides-bar-title {
+  font: var(--halcyon-text-body);
+  color: var(--halcyon-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.halcyon-tides-bar-url {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.halcyon-tides-bar-flow {
+  flex: 1 1 auto;
+  height: 6px;
+  background: var(--halcyon-surface-2);
+  border-radius: var(--halcyon-radius-pill);
+  position: relative;
+  overflow: hidden;
+}
+
+.halcyon-tides-bar-flow-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--halcyon-accent);
+  border-radius: var(--halcyon-radius-pill);
+  transform-origin: left center;
+  /* width is set inline by tides.js based on time-spent, but capped at 100% */
+}
+
+.halcyon-tides-bar-meta {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-2);
+  white-space: nowrap;
+  margin-left: var(--halcyon-space-3);
+}
+
+/* --- "Wash away" per-site action --- */
+.halcyon-tides-bar-wash {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--halcyon-text-2);
+  opacity: 0;
+  transition: opacity var(--halcyon-dur-fast) var(--halcyon-ease), color var(--halcyon-dur-fast) var(--halcyon-ease);
+  padding: var(--halcyon-space-1);
+  border-radius: var(--halcyon-radius-sm);
+}
+.halcyon-tides-bar:hover .halcyon-tides-bar-wash { opacity: 1; }
+.halcyon-tides-bar-wash:hover { color: var(--halcyon-danger); background: var(--halcyon-danger-soft); }
+
+/* --- Today's quote, if empty --- */
+.halcyon-tides-empty-quote {
+  font: var(--halcyon-text-serif);
+  color: var(--halcyon-text-2);
+  text-align: center;
+  max-width: 40ch;
+  margin: var(--halcyon-space-9) auto;
+  font-style: italic;
+}
+
+@media (max-width: 720px) {
+  .halcyon-tides-controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .halcyon-tides-filter {
+    width: 100%;
+    max-width: none;
+    flex: 1 1 auto;
+  }
+  .halcyon-tides-bar {
+    grid-template-columns: 24px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+  }
+  .halcyon-tides-bar-flow {
+    grid-column: 2 / 3;
+  }
+  .halcyon-tides-bar-meta {
+    grid-column: 2 / 3;
+    margin-left: 0;
+  }
+}

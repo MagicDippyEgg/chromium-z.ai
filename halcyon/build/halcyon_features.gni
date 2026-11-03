@@ -1,0 +1,48 @@
+# Copyright 2026 The Halcyon Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Halcyon build flags. Import this file from any Halcyon GN target or
+# from any upstream GN target that conditionally includes Halcyon code.
+#
+# Example:
+#   import("//halcyon/build/halcyon_features.gni")
+#   if (enable_halcyon) { ... }
+
+import("//build/buildflag_header.gni")
+
+declare_args() {
+  # Halcyon is a calm browser built on Chromium. When true, the build
+  # produces the Halcyon browser instead of upstream Chrome. Defaults to
+  # false so a default Chromium build is unaffected.
+  enable_halcyon = false
+
+  # When true, the Halcyon-bundled fonts (Inter, Inter Tight, Source Serif 4,
+  # JetBrains Mono, all OFL 1.1) are downloaded by halcyon/build/fetch_fonts.py
+  # and bundled into chrome://resources/halcyon_shared/fonts/.
+  halcyon_bundle_fonts = false
+
+  # The default search engine for new Halcyon users.
+  # Must be one of: "duckduckgo", "google", "brave", "startpage", "mojeek", "halcyon".
+  halcyon_default_search_engine = "duckduckgo"
+
+  # Whether Quiet Mode is on by default for new users.
+  halcyon_quiet_mode_default = true
+
+  # When true, the build fails on any Halcyon string that contains an
+  # exclamation mark, "Welcome", or another banned word per the Halcyon
+  # voice guide (halcyon/branding/voice.md). Used during Halcyon development
+  # to catch voice violations early.
+  halcyon_strict_voice_check = false
+}
+
+# Generate a buildflag header that exposes the `enable_halcyon` flag to
+# C++ via BUILDFLAG(ENABLE_HALCYON). The header is generated at
+# $target_gen_dir/halcyon_buildflags.h — i.e.,
+# out/<build>/gen/halcyon/build/halcyon_buildflags.h. C++ files include it
+# via `#include "halcyon/build/halcyon_buildflags.h"` (the build system
+# adds the gen dir to the include path).
+buildflag_header("halcyon_buildflags") {
+  header = "halcyon_buildflags.h"
+  flags = [ "ENABLE_HALCYON=$enable_halcyon" ]
+}

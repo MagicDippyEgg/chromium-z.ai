@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+"""Generate BUILD.gn files for each Halcyon source directory.
+
+Walks halcyon/src/, finds directories containing Halcyon source files,
+and emits a BUILD.gn with a source_set for the corresponding Halcyon target.
+The target name is the directory's basename (e.g., halcyon_browser_view for
+the directory halcyon/src/chrome/browser/ui/views/frame/).
+
+This is a one-shot generator — re-run it after adding new Halcyon source
+directories. The generated files are simple enough that they could be
+hand-maintained, but the generator ensures they stay in sync with the
+directory structure.
+"""
+
+import os
+import sys
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+SRC = os.path.join(ROOT, '..', 'halcyon', 'src')
+
+# Mapping from a directory's basename to the GN target name expected by
+# halcyon/BUILD.gn and chrome/browser/ui/BUILD.gn. The target name is
+# typically the directory's basename. Where there's ambiguity (e.g., a
+# frame/ dir might want halcyon_browser_view OR halcyon_frame_view), we
+# list them explicitly.
+DIR_TO_TARGETS = {
+    'chrome/browser/ui/views/frame': ['halcyon_browser_view', 'halcyon_frame_view'],
+    'chrome/browser/ui/views/toolbar': ['halcyon_toolbar_view', 'halcyon_menu_button', 'halcyon_navigation_button'],
+    'chrome/browser/ui/views/tabs': ['halcyon_tab_strip', 'halcyon_tab'],
+    'chrome/browser/ui/views/tidemarks': ['halcyon_tidemarks_view'],
+    'chrome/browser/ui/views/privacy_lantern': ['halcyon_lantern_indicator'],
+    'chrome/browser/ui/views/bookmarks': ['halcyon_cairn_indicator'],
+    'chrome/browser/ui/views/location_bar': ['halcyon_omnibox_view'],
+    'chrome/browser/themes': ['halcyon_theme'],
+    'chrome/browser/ui/webui': ['halcyon_ntp_ui', 'halcyon_settings_ui', 'halcyon_tides_ui', 'halcyon_cairn_ui', 'halcyon_cove_ui', 'halcyon_lantern_ui'],
+    'chrome/browser/resources/halcyon_ntp': ['halcyon_ntp_resources'],
+    'chrome/browser/resources/halcyon_settings': ['halcyon_settings_resources'],
+    'chrome/browser/resources/halcyon_tides': ['halcyon_tides_resources'],
+    'chrome/browser/resources/halcyon_cairn': ['halcyon_cairn_resources'],
+    'chrome/browser/resources/halcyon_cove': ['halcyon_cove_resources'],
+    'chrome/browser/resources/halcyon_lantern': ['halcyon_lantern_resources'],
+    'chrome/browser/resources/halcyon_shared': ['halcyon_shared_resources'],
+}
+
+# When a target needs only a subset of the .h/.cc files in a directory,
+# this map specifies them.
+TARGET_FILES = {
+    'halcyon_browser_view': ['halcyon_browser_view.h', 'halcyon_browser_view.cc'],
+    'halcyon_frame_view': ['halcyon_frame_view.h', 'halcyon_frame_view.cc'],
+    'halcyon_toolbar_view': ['halcyon_toolbar_view.h', 'halcyon_toolbar_view.cc'],
+    'halcyon_menu_button': ['halcyon_menu_button.h', 'halcyon_menu_button.cc'],
+    'halcyon_navigation_button': ['halcyon_navigation_button.h', 'halcyon_navigation_button.cc'],
+    'halcyon_tab_strip': ['halcyon_tab_strip.h', 'halcyon_tab_strip.cc'],
+    'halcyon_tab': ['halcyon_tab.h', 'halcyon_tab.cc'],
+    'halcyon_tidemarks_view': ['halcyon_tidemarks_view.h', 'halcyon_tidemarks_view.cc'],
+    'halcyon_lantern_indicator': ['halcyon_lantern_indicator_view.h', 'halcyon_lantern_indicator_view.cc'],
+    'halcyon_cairn_indicator': ['halcyon_cairn_indicator_view.h', 'halcyon_cairn_indicator_view.cc'],
+    'halcyon_omnibox_view': ['halcyon_omnibox_view.h', 'halcyon_omnibox_view.cc'],
+    'halcyon_theme': ['halcyon_theme.h', 'halcyon_theme.cc'],
+}
+
+# Resource targets bundle all files in their directory.
+RESOURCE_TARGETS = {
+    'halcyon_ntp_resources', 'halcyon_settings_resources', 'halcyon_tides_resources',
+    'halcyon_cairn_resources', 'halcyon_cove_resources', 'halcyon_lantern_resources',
+    'halcyon_shared_resources',
+}
+
+# Common deps for native (Views) targets.
+NATIVE_DEPS = [
+    '//base',
+    '//chrome/browser/profiles:profile',
+    '//chrome/browser/ui/browser:browser',
+    '//content/public/browser',
+    '//ui/base',
+    '//ui/views',
+    '//halcyon/src/ui/base:halcyon_color_palette',
+]
+
+# Deps for WebUI targets.
+WEBUI_DEPS = [
+    '//base',
+    '//chrome/browser/profiles:profile',
+    '//chrome/browser/ui/webui:web_ui_util',
+    '//content/public/browser',
+    '//ui/base',
+    '//ui/webui',
+]
+
+# Deps for resource bundle targets.
+RESOURCE_DEPS = [
+    '//base',
+    '//ui/base',
+]
+
+
+def generate(dir_rel, targets):
+    """Write a BUILD.gn into halcyon/src/<dir_rel>/."""
+    full_dir = os.path.join(SRC, dir_rel)
+    if not os.path.isdir(full_dir):
+        return
+    files_in_dir = sorted(os.listdir(full_dir))
+    is_resource = dir_rel.startswith('chrome/browser/resources/')
+    body = [
+        '# Copyright 2026 The Halcyon Authors. All rights reserved.',
+        '# Use of this source code is governed by a BSD-style license that',
+        '# can be found in the LICENSE file.',
+        '',
+        '# Auto-generated by halcyon/build/gen_build_gns.py. Edit the',
+        '# generator, not this file, when adding new sources.',
+        '',
+        'import("//halcyon/build/halcyon_features.gni")',
+        '',
+    ]
+
+    for target in targets:
+        if is_resource:
+            body.extend([
+                f'group("{target}") {{',
+                '  if (enable_halcyon) {',
+                '    sources = [',
+            ])
+            for f in files_in_dir:
+                if f.endswith(('.html', '.css', '.js', '.json', '.svg', '.ts')):
+                    body.append(f'      "{f}",')
+            body.extend([
+                '    ]',
+                '    public_deps = ' + str(RESOURCE_DEPS).replace("'", '"'),
+                '  }',
+                '}',
+                '',
+            ])
+        elif target in RESOURCE_TARGETS:
+            # resource target in a non-resource dir — skip
+            continue
+        else:
+            files = TARGET_FILES.get(target, [])
+            files_present = [f for f in files if os.path.exists(os.path.join(full_dir, f))]
+            if not files_present:
+                continue
+            body.extend([
+                f'source_set("{target}") {{',
+                '  if (enable_halcyon) {',
+                '    sources = [',
+            ])
+            for f in files_present:
+                body.append(f'      "{f}",')
+            body.extend([
+                '    ]',
+                '    deps = ' + str(WEBUI_DEPS if dir_rel.startswith('chrome/browser/ui/webui') else NATIVE_DEPS).replace("'", '"'),
+                '  }',
+                '}',
+                '',
+            ])
+
+    target_path = os.path.join(full_dir, 'BUILD.gn')
+    with open(target_path, 'w') as f:
+        f.write('\n'.join(body))
+    print(f'wrote {target_path}')
+
+
+def main():
+    # Special: ui/base has its own target.
+    ui_base = os.path.join(SRC, 'ui', 'base')
+    os.makedirs(ui_base, exist_ok=True)
+    with open(os.path.join(ui_base, 'BUILD.gn'), 'w') as f:
+        f.write('\n'.join([
+            '# Copyright 2026 The Halcyon Authors. All rights reserved.',
+            '# Use of this source code is governed by a BSD-style license that',
+            '# can be found in the LICENSE file.',
+            '',
+            '# The Halcyon color palette header. Mirrors the CSS design tokens',
+            '# in halcyon/design/design_tokens.css. See',
+            '# halcyon/branding/color_system.md for the brand-level reference.',
+            '',
+            'source_set("halcyon_color_palette") {',
+            '  sources = [ "halcyon_color_palette.h" ]',
+            '  deps = [ "//third_party/skia" ]',
+            '}',
+            '',
+        ]))
+    print(f'wrote {ui_base}/BUILD.gn')
+
+    for dir_rel, targets in DIR_TO_TARGETS.items():
+        generate(dir_rel, targets)
+
+
+if __name__ == '__main__':
+    main()
