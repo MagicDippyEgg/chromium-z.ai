@@ -1,74 +1,19 @@
 From: Halcyon Browser Project <halcyon@local>
-Date: Tue, 3 Nov 2026 10:00:00 +0000
-Subject: [PATCH] context_menu: add the Halcyon "Add a margin note" item
+Date: Tue, 4 Nov 2026 00:00:00 +0000
+Subject: [PATCH] context_menu: add the Halcyon "Add a margin note" item (DEFERRED)
 
-This patch adds a single context-menu item to the page context menu:
+Pinned Chromium revision: ff897141277d798d72ea3ae0a94ff3a51956b267
+                       (Chromium 159.0.8142.0, main HEAD at pin time)
 
-  "Add a margin note"  (ID: IDC_HALCYON_ADD_MARGIN_NOTE)
+The upstream file referenced by the original skeleton patch
+(chrome/browser/ui/views/chrome_javascript_app_menu_controller.cc) does
+not exist in the current Chromium revision. The current render-view
+context menu lives under components/renderer_context_menu/ but the
+menu-item wiring requires more investigation than fit in this round.
 
-The item is shown only on http(s) pages where Margin Notes is enabled.
-Selecting text and choosing the item creates a new Margin Note anchored
-to the selection; clicking the item without a selection creates an
-unanchored note.
-
-The item is placed immediately under "Save link as…" — above the
-developer-tools section. It is NOT placed at the top of the menu (the menu
-order is for muscle memory, not for promotion).
-
-Applies cleanly against Chromium at the time of writing (November 2026).
+The IDC_HALCYON_ADD_MARGIN_NOTE value IS defined (via patch 2), so a
+follow-up patch can wire the menu item by referencing the IDC value.
 
 ---
- chrome/app/chrome_command_ids.h                   | 1 +
- chrome/browser/ui/views/chrome_javascript_app_menu_controller.cc | 1 +
- chrome/browser/ui/webui/halcyon_margin_notes_host.cc | 5 +++++
- 3 files changed, 7 insertions(+)
+ (no files modified)
 
-diff --git a/chrome/app/chrome_command_ids.h b/chrome/app/chrome_command_ids.h
-index 1111111..2222222 100644
---- a/chrome/app/chrome_command_ids.h
-+++ b/chrome/app/chrome_command_ids.h
-@@ -200,6 +200,7 @@ enum ChromeCommandIds {
-   IDC_HALCYON_TOGGLE_TIDEMARKS        = 53000,
-   IDC_HALCYON_TOGGLE_QUIET_MODE       = 53001,
-   IDC_HALCYON_OPEN_QUILL              = 53002,
-+  IDC_HALCYON_ADD_MARGIN_NOTE         = 53003,
-   // End of Halcyon commands.
-
-   // The following IDs are reserved for commands loaded from extensions.
-diff --git a/chrome/browser/ui/views/chrome_javascript_app_menu_controller.cc b/chrome/browser/ui/views/chrome_javascript_app_menu_controller.cc
-index 1111111..2222222 100644
---- a/chrome/browser/ui/views/chrome_javascript_app_menu_controller.cc
-+++ b/chrome/browser/ui/views/chrome_javascript_app_menu_controller.cc
-@@ -380,6 +380,7 @@ std::u16string HalcyonMenuModel::GetLabelForCommandId(int command_id) const {
-     case IDC_HALCYON_TOGGLE_TIDEMARKS: return u"Toggle Tidemarks";
-     case IDC_HALCYON_TOGGLE_QUIET_MODE: return u"Toggle Quiet Mode";
-     case IDC_HALCYON_OPEN_QUILL: return u"Open Quill";
-+    case IDC_HALCYON_ADD_MARGIN_NOTE: return u"Add a margin note";
-   }
-   return BrowserCommandController::GetLabelForCommandId(command_id);
- }
-@@ -462,6 +463,8 @@ void HalcyonMenuModel::BuildPageMenu() {
-   // Halcyon commands live in a single group, in the order of the brand book
-   // §14 menu map. (Not in the upstream "page" group.)
-   AddMenuItemWithString(IDC_HALCYON_OPEN_QUILL,        "Open Quill");
-+  AddMenuItemWithString(IDC_HALCYON_ADD_MARGIN_NOTE,  "Add a margin note");
-   AddSeparator();
- }
-diff --git a/chrome/browser/ui/webui/halcyon_margin_notes_host.cc b/chrome/browser/ui/webui/halcyon_margin_notes_host.cc
-index 1111111..2222222 100644
---- a/chrome/browser/ui/webui/halcyon_margin_notes_host.cc
-+++ b/chrome/browser/ui/webui/halcyon_margin_notes_host.cc
-@@ -128,6 +128,11 @@ void HalcyonMarginNotesHost::DidFinishNavigation(content::NavigationHandle* h) {
-   LoadNotesForCurrentUrl();
- }
-
-+void HalcyonMarginNotesHost::AddNoteFromSelection(
-+    const std::string& quoted_text) {
-+  CreateNote(quoted_text);
-+}
-+
- void HalcyonMarginNotesHost::WebContentsDestroyed() {
-   receiver_.reset();
- }
---
-2.39.2

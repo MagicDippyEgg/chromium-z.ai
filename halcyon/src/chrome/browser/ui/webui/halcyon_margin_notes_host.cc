@@ -172,6 +172,16 @@ void HalcyonMarginNotesHost::WebContentsDestroyed() {
   receiver_.reset();
 }
 
+void HalcyonMarginNotesHost::AddNoteFromSelection(
+    const std::string& quoted_text) {
+  // Thin wrapper around CreateNote, called by the page context menu
+  // (when the user picks "Add a margin note" with text selected).
+  // The menu-item wiring itself is deferred — see
+  // patches/context_menu_add_margin_note.patch — but this method is
+  // the entry point the future context-menu code will call.
+  CreateNote(quoted_text);
+}
+
 void HalcyonMarginNotesHost::BindReceiver(
     mojo::PendingAssociatedReceiver<halcyon::mojom::HalcyonMarginNotesHost>
         r) {

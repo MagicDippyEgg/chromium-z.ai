@@ -88,6 +88,13 @@ class HalcyonMarginNotesHost : public content::WebContentsUserData<HalcyonMargin
   void SaveNote(const std::string& note_id, const std::string& body);
   void DeleteNote(const std::string& note_id);
 
+  // Convenience wrapper around CreateNote. Called by the page context
+  // menu when the user picks "Add a margin note" with text selected.
+  // (The context-menu wiring itself is deferred — see
+  // patches/context_menu_add_margin_note.patch — but this method is
+  // the entry point the future patch will call.)
+  void AddNoteFromSelection(const std::string& quoted_text);
+
  private:
   friend class content::WebContentsUserData<HalcyonMarginNotesHost>;
   WEB_CONTENTS_USERDATA_KEY_DECL();
