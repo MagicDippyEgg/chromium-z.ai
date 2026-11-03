@@ -1,0 +1,23 @@
+# Copyright 2026 The Halcyon Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("//tools/grit/grit_rule.gni")
+
+grit("lantern_report") {
+  source = "lantern_report.grd"
+  outputs = [
+    "grit/lantern_report.h",
+    "grit/lantern_report_map.cc",
+    "grit/lantern_report_map.h",
+    "grit/lantern_report_resources.pak",
+  ]
+}
+
+source_set("lantern_report_resources") {
+  sources = [
+    "lantern_report.html",
+    "lantern_report.css",
+    "lantern_report.js",
+  ]
+}

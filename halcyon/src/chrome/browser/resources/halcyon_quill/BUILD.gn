@@ -1,0 +1,33 @@
+# Copyright 2026 The Halcyon Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Build target for the Quill side panel WebUI resources.
+#
+# The resources are served at chrome://resources/halcyon_quill/* and packed
+# into the browser resource bundle by grit. The C++ side
+# (HalcyonQuillMessageHandler) lives in chrome/browser/ui/webui/.
+
+import("//tools/grit/grit_rule.gni")
+
+grit("quill") {
+  source = "quill.grd"
+  outputs = [
+    "grit/quill.h",
+    "grit/quill_map.cc",
+    "grit/quill_map.h",
+    "grit/quild_pak.h",
+    "grit/quill_resources.pak",
+  ]
+}
+
+# The HTML/CSS/JS for the Quill side panel. Listed here so a `gn refs` from
+# any of these files lands on this BUILD.gn (and so the grit resource map is
+# obvious to a reader).
+source_set("quill_resources") {
+  sources = [
+    "quill.html",
+    "quill.css",
+    "quill.js",
+  ]
+}

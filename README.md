@@ -282,9 +282,6 @@ This is a transparent accounting of the state of the Halcyon source.
 
 **Not yet implemented (intentionally deferred, documented in
 ARCHITECTURE.md §"Deferred"):**
-- Quill side-panel HTML/CSS/JS — file structure exists, content is
-  stubbed. Documented as deferred.
-- The Margin Notes feature (the right-margin card + the per-URL storage).
 - The Anchored Tabs persistence logic (UI is there; persistence across
   sessions is a C++ change in TabStripModel that needs the patch).
 - The full icon catalog (icons.svg has the most-used ~30; the remaining
@@ -294,6 +291,53 @@ ARCHITECTURE.md §"Deferred"):**
   to be physically placed in `halcyon_shared/fonts/`. The directory is
   created; the font files themselves are not bundled (they are OFL 1.1
   and are downloadable from Google Fonts).
+
+**Visual preview** — `halcyon/preview/halcyon_preview.html` is a
+standalone HTML file that renders what the Halcyon chrome looks like —
+slim frame, calm tab strip, sage-toolbar with the breathing Lantern
+indicator, the omnibox with a Margin Notes mark, and the Plume NTP
+behind it. Open it in any browser to see the design language without
+building the browser. Every value in the preview is a faithful copy of
+`design_tokens.css`; the C++ side mirrors the same values via
+`halcyon_color_palette.h`.
+
+**Design-system consistency check** — `halcyon/design/verify_tokens.py`
+parses both `design_tokens.css` and `halcyon/src/ui/base/halcyon_color_palette.h`
+and exits non-zero if any color is defined in one but not the other, or
+defined differently. Run it before every commit:
+
+```bash
+python3 halcyon/design/verify_tokens.py
+```
+
+**Now implemented in this round:**
+- **Quill** — full per-origin note-taking side panel
+  (`halcyon/src/chrome/browser/resources/halcyon_quill/`,
+  `chrome/browser/ui/webui/halcyon_quill_ui.*`,
+  `chrome/browser/ui/webui/halcyon_quill_message_handler.*`).
+  Storage: `<profile>/Quill/<origin-sha256[:8]>/<note-uuid>.md`. Autosave
+  on input, debounced 400ms. Plain-language timestamps. ⌘⇧N opens.
+- **Margin Notes** — full per-URL annotation overlay injected into every
+  http(s) page via Shadow DOM
+  (`halcyon/src/chrome/browser/resources/halcyon_margin_notes/`,
+  `chrome/browser/ui/webui/halcyon_margin_notes_host.*`).
+  Storage: `<profile>/MarginNotes/<url-sha256[:16]>/<note-uuid>.json`.
+  Right-click → "Add a margin note" creates a note anchored to the
+  selection. A small "·N" mark appears in the omnibox on URLs that have
+  notes.
+- **Lantern Report** — weekly, on-demand, local-only summary at
+  `chrome://halcyon-lantern-report`
+  (`halcyon/src/chrome/browser/resources/halcyon_lantern_report/`,
+  `chrome/browser/ui/webui/halcyon_lantern_report_*`).
+  Aggregates the Lantern logs into a tide-table breakdown plus a
+  per-site expandable list. No data ever leaves the device.
+- **About page** — single page of plain text at `chrome://halcyon`
+  (`halcyon/src/chrome/browser/resources/halcyon_about/`,
+  `chrome/browser/ui/webui/halcyon_about_*`). No logos, no splash,
+  no "Made with ♥" — see `halcyon/branding/voice.md §About Halcyon`.
+- **Patches** — `patches/webui_register_halcyon_pages.patch` registers
+  the four new chrome:// pages, and `patches/context_menu_add_margin_note.patch`
+  adds the "Add a margin note" item to the page context menu.
 
 ---
 

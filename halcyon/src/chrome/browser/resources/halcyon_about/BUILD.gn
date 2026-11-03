@@ -1,0 +1,23 @@
+# Copyright 2026 The Halcyon Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("//tools/grit/grit_rule.gni")
+
+grit("about") {
+  source = "about.grd"
+  outputs = [
+    "grit/about.h",
+    "grit/about_map.cc",
+    "grit/about_map.h",
+    "grit/about_resources.pak",
+  ]
+}
+
+source_set("about_resources") {
+  sources = [
+    "about.html",
+    "about.css",
+    "about.js",
+  ]
+}

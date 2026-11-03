@@ -1,0 +1,79 @@
+From: Halcyon Browser Project <halcyon@local>
+Date: Tue, 3 Nov 2026 10:00:00 +0000
+Subject: [PATCH] webui: register Halcyon chrome:// pages
+
+This patch wires up the four additional Halcyon WebUI pages:
+
+  chrome://halcyon             — the About page
+  chrome://halcyon-quill       — the Quill note-taking side panel
+  chrome://halcyon-lantern-report — the weekly, local-only Lantern report
+  chrome://halcyon-margin-notes   — the Margin Notes overlay UI
+
+(The Margin Notes page is only opened by the side panel itself; it's not
+listed in chrome://chrome-urls but the URL is reserved for the case the
+side panel is invoked outside the page-overlay flow.)
+
+Each page is gated behind `features::kHalcyonUI`. When the flag is off
+the upstream chrome:// pages are left untouched.
+
+Applies cleanly against Chromium at the time of writing (November 2026).
+The mechanical change in each case is the same: in
+chrome/browser/ui/webui/webui_configurations.cc, in the
+RegisterURLLoader() function, conditionally swap the registered class.
+
+---
+ chrome/browser/ui/webui/webui_configurations.cc | 30 +++++++++++++++++++++++-
+ 1 file changed, 29 insertions(+), 1 deletion(-)
+
+diff --git a/chrome/browser/ui/webui/webui_configurations.cc b/chrome/browser/ui/webui/webui_configurations.cc
+index 0000000..2222222 100644
+--- a/chrome/browser/ui/webui/webui_configurations.cc
++++ b/chrome/browser/ui/webui/webui_configurations.cc
+@@ -100,6 +100,10 @@
+ #include "chrome/browser/ui/webui/bookmarks/bookmarks_ui.h"
+ #include "chrome/browser/ui/webui/new_tab/new_tab_ui.h"
+ #include "chrome/browser/ui/webui/halcyon_ntp_ui.h"
++#include "chrome/browser/ui/webui/halcyon_about_ui.h"
++#include "chrome/browser/ui/webui/halcyon_quill_ui.h"
++#include "chrome/browser/ui/webui/halcyon_lantern_report_ui.h"
++#include "chrome/browser/ui/webui/halcyon_margin_notes_ui.h"
+
+ namespace chrome {
+
+@@ -233,12 +237,36 @@ void WebUIConfigurations::RegisterURLLoader(
+   // chrome://newtab
+   if (base::FeatureList::IsEnabled(features::kHalcyonUI)) {
+     RegisterWebUIConfig<halcyon::HalcyonNtpUI>(chrome::kChromeUINewTabHost);
+   } else {
+     RegisterWebUIConfig<NewTabUI>(chrome::kChromeUINewTabHost);
+   }
+
++  // chrome://halcyon — the About page (single page of plain text; see
++  // halcyon/branding/voice.md §About Halcyon).
++  if (base::FeatureList::IsEnabled(features::kHalcyonUI)) {
++    RegisterWebUIConfig<halcyon::HalcyonAboutUI>(chrome::kChromeUIHalcyonHost);
++  }
++
++  // chrome://halcyon-quill — Quill, the per-origin note-taking side panel.
++  if (base::FeatureList::IsEnabled(features::kHalcyonUI)) {
++    RegisterWebUIConfig<halcyon::HalcyonQuillUI>(chrome::kChromeUIHalcyonQuillHost);
++  }
++
++  // chrome://halcyon-lantern-report — the weekly, local-only Lantern
++  // report. (See halcyon/branding/brand_book.md §13.12.)
++  if (base::FeatureList::IsEnabled(features::kHalcyonUI)) {
++    RegisterWebUIConfig<halcyon::HalcyonLanternReportUI>(
++        chrome::kChromeUIHalcyonLanternReportHost);
++  }
++
++  // chrome://halcyon-margin-notes — the overlay UI (used by the side
++  // panel; not listed in chrome://chrome-urls).
++  if (base::FeatureList::IsEnabled(features::kHalcyonUI)) {
++    RegisterWebUIConfig<halcyon::HalcyonMarginNotesUI>(
++        chrome::kChromeUIHalcyonMarginNotesHost);
++  }
++
+   // chrome://settings
+   RegisterWebUIConfig<SettingsUI>(chrome::kChromeUISettingsHost);
+--
+2.39.2

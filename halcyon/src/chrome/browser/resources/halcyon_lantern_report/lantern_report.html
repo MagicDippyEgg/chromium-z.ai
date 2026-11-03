@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Lantern Report — Halcyon</title>
+
+  <!--
+    Lantern Reports — the weekly, on-demand, local-only summary of what
+    the browser blocked or observed this week.
+
+    The report has:
+      - a header with the week range and a "Recompute" button
+      - a one-line plain-language summary ("This week, Halcyon blocked 47
+        trackers and 12 third-party cookies. 4 sites tried to autoplay
+        video; all were muted.")
+      - a tide-table breakdown by category (trackers, cookies, fingerprinting,
+        permissions, autoplay) with horizontal weight bars
+      - per-site breakdown, expandable
+      - a footer: "This report never leaves your device."
+
+    The report does NOT:
+      - compare to "other users"
+      - recommend extensions
+      - link to upgrade flows
+      - auto-play a tour
+      - include any "what we did well" marketing copy
+  -->
+
+  <link rel="stylesheet" href="chrome://resources/halcyon_shared/design_tokens.css">
+  <link rel="stylesheet" href="chrome://resources/halcyon_shared/halcyon_chrome_page.css">
+  <link rel="stylesheet" href="chrome://resources/halcyon_lantern_report/lantern_report.css">
+
+  <script src="chrome://resources/halcyon_shared/js/halcyon_theme.js" defer></script>
+  <script src="chrome://resources/halcyon_shared/js/halcyon_icon.js" defer></script>
+  <script src="chrome://resources/halcyon_lantern_report/lantern_report.js" type="module" defer></script>
+</head>
+<body class="halcyon-lantern-report">
+
+  <header class="halcyon-lantern-report-header">
+    <div class="halcyon-lantern-report-header-inner">
+      <h1 class="halcyon-lantern-report-title">Lantern Report</h1>
+      <p class="halcyon-lantern-report-range" id="halcyon-lantern-report-range">This week</p>
+      <button class="halcyon-lantern-report-recompute"
+              id="halcyon-lantern-report-recompute"
+              type="button"
+              title="Recompute from local data">
+        <halcyon-icon name="refresh" size="14"></halcyon-icon>
+        <span>Recompute</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="halcyon-lantern-report-main">
+
+    <section class="halcyon-lantern-report-summary">
+      <p class="halcyon-lantern-report-summary-text" id="halcyon-lantern-report-summary">Loading…</p>
+    </section>
+
+    <section class="halcyon-lantern-report-breakdown"
+             aria-labelledby="halcyon-lantern-report-breakdown-title">
+      <h2 class="halcyon-lantern-report-breakdown-title"
+          id="halcyon-lantern-report-breakdown-title">Breakdown</h2>
+
+      <ul class="halcyon-lantern-report-breakdown-list"
+          id="halcyon-lantern-report-breakdown-list">
+        <!-- rows are injected by JS. Each row is a category with a weight bar. -->
+      </ul>
+    </section>
+
+    <section class="halcyon-lantern-report-sites"
+             aria-labelledby="halcyon-lantern-report-sites-title">
+      <h2 class="halcyon-lantern-report-sites-title"
+          id="halcyon-lantern-report-sites-title">Per site</h2>
+      <ul class="halcyon-lantern-report-sites-list"
+          id="halcyon-lantern-report-sites-list">
+        <!-- rows are injected by JS. Each site is expandable. -->
+      </ul>
+    </section>
+
+  </main>
+
+  <footer class="halcyon-lantern-report-footer">
+    <p class="halcyon-lantern-report-footer-text">
+      This report never leaves your device.
+    </p>
+  </footer>
+
+</body>
+</html>

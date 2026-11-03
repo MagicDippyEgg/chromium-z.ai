@@ -1,0 +1,141 @@
+/* About Halcyon — chrome://halcyon
+ *
+ * A single page of plain text, centered, on a calm Vellum (or Eclipse)
+ * background. The visual intent: a colophon, not a marketing page.
+ */
+
+.halcyon-about {
+  min-height: 100vh;
+  background: var(--halcyon-bg);
+  color: var(--halcyon-text);
+  font: var(--halcyon-text-body-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--halcyon-space-8) var(--halcyon-space-6);
+}
+
+.halcyon-about-main {
+  max-width: 540px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--halcyon-space-7);
+}
+
+/* --- Header --------------------------------------------------------- */
+
+.halcyon-about-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--halcyon-space-2);
+}
+
+.halcyon-about-mark {
+  color: var(--halcyon-accent);
+}
+
+.halcyon-about-name {
+  font: var(--halcyon-text-display);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.halcyon-about-version {
+  font: var(--halcyon-text-subtitle);
+  color: var(--halcyon-text-2);
+  margin: 0;
+}
+
+.halcyon-about-version span {
+  font-variant-numeric: tabular-nums;
+  color: var(--halcyon-text);
+}
+
+/* --- Prose ---------------------------------------------------------- */
+
+.halcyon-about-prose,
+.halcyon-about-licensing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--halcyon-space-2);
+}
+
+.halcyon-about-line {
+  margin: 0;
+  line-height: 1.55;
+  color: var(--halcyon-text);
+}
+
+.halcyon-about-line span {
+  font-variant-numeric: tabular-nums;
+  color: var(--halcyon-text);
+}
+
+.halcyon-about-link {
+  color: var(--halcyon-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.halcyon-about-link:hover {
+  color: var(--halcyon-link-press);
+  text-decoration-thickness: 2px;
+}
+
+.halcyon-about-link:focus-visible {
+  outline: 2px solid var(--halcyon-accent);
+  outline-offset: 2px;
+  border-radius: var(--halcyon-radius-sm);
+}
+
+/* --- Actions ------------------------------------------------------- */
+
+.halcyon-about-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--halcyon-space-2);
+  padding-top: var(--halcyon-space-4);
+  border-top: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+}
+
+.halcyon-about-action {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: var(--halcyon-space-2) 0;
+  color: var(--halcyon-link);
+  font: var(--halcyon-text-body-lg);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.halcyon-about-action:hover {
+  color: var(--halcyon-link-press);
+  text-decoration-thickness: 2px;
+}
+
+.halcyon-about-action:focus-visible {
+  outline: 2px solid var(--halcyon-accent);
+  outline-offset: 2px;
+  border-radius: var(--halcyon-radius-sm);
+}
+
+/* --- Dark theme (Eclipse) ------------------------------------------- */
+
+@media (prefers-color-scheme: dark) {
+  .halcyon-about {
+    background: var(--halcyon-eclipse-bg);
+    color: var(--halcyon-eclipse-text);
+  }
+
+  .halcyon-about-actions {
+    border-color: var(--halcyon-eclipse-border-soft);
+  }
+}

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>About Halcyon</title>
+
+  <!--
+    About Halcyon — chrome://halcyon
+
+    The Halcyon about page is intentionally a single page of plain text.
+    No logos of upstream vendors, no animated splash, no "Made with ♥".
+    (See halcyon/branding/voice.md §About Halcyon.)
+
+    Layout: a single column, max-width 540px, centered. The page is mostly
+    empty Vellum (or Eclipse). The text is left-aligned. There is no
+    header image. There is no version banner.
+
+    The version, channel, and build numbers are injected by the C++ side
+    via window.halcyon.aboutInfo(info).
+  -->
+
+  <link rel="stylesheet" href="chrome://resources/halcyon_shared/design_tokens.css">
+  <link rel="stylesheet" href="chrome://resources/halcyon_shared/halcyon_chrome_page.css">
+  <link rel="stylesheet" href="chrome://resources/halcyon_about/about.css">
+
+  <script src="chrome://resources/halcyon_shared/js/halcyon_theme.js" defer></script>
+  <script src="chrome://resources/halcyon_shared/js/halcyon_icon.js" defer></script>
+  <script src="chrome://resources/halcyon_about/about.js" type="module" defer></script>
+</head>
+<body class="halcyon-about">
+
+  <main class="halcyon-about-main">
+
+    <header class="halcyon-about-header">
+      <halcyon-icon name="brand" size="40" class="halcyon-about-mark"></halcyon-icon>
+      <h1 class="halcyon-about-name">Halcyon</h1>
+      <p class="halcyon-about-version">
+        Version <span id="halcyon-about-version">1.0.0</span>
+      </p>
+    </header>
+
+    <section class="halcyon-about-prose">
+      <p class="halcyon-about-line">
+        Halcyon is a calm browser built on Chromium.
+      </p>
+      <p class="halcyon-about-line">
+        The engine is Blink; the JavaScript engine is V8.
+      </p>
+      <p class="halcyon-about-line">
+        You're using build <span id="halcyon-about-build">1.0.0</span>,
+        channel <span id="halcyon-about-channel">stable</span>,
+        <span id="halcyon-about-arch">64-bit</span>.
+      </p>
+    </section>
+
+    <section class="halcyon-about-licensing">
+      <p class="halcyon-about-line">
+        Halcyon is open source. The source code is at
+        <a href="https://github.com/MagicDippyEgg/chromium-z.ai"
+           class="halcyon-about-link">github.com/MagicDippyEgg/chromium-z.ai</a>.
+      </p>
+      <p class="halcyon-about-line">
+        Chromium is © The Chromium Authors and licensed under the
+        BSD 3-Clause License. Halcyon's modifications are © The Halcyon
+        Authors and licensed under the same.
+      </p>
+    </section>
+
+    <section class="halcyon-about-actions">
+      <button class="halcyon-about-action"
+              id="halcyon-about-report-problem"
+              type="button">
+        Report a problem with Halcyon
+      </button>
+      <button class="halcyon-about-action"
+              id="halcyon-about-release-notes"
+              type="button">
+        Release notes
+      </button>
+    </section>
+
+  </main>
+
+</body>
+</html>

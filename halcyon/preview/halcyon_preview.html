@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Halcyon — visual preview</title>
+
+  <!--
+    Halcyon visual preview.
+
+    This is a single, self-contained HTML file that renders what the Halcyon
+    browser chrome looks like — the slim frame, the horizontal tab strip,
+    the calm toolbar, the omnibox, the Lantern indicator, the menu button —
+    around a fake page (the Plume NTP). It exists so that anyone can open
+    the file in any browser and SEE what the Halcyon chrome feels like,
+    without building the actual browser.
+
+    This file is NOT shipped with the browser. It's a design aid. The real
+    chrome is rendered in the Views framework (C++). Every value here is a
+    faithful copy of design_tokens.css; the C++ side mirrors the same values
+    via halcyon_color_palette.h.
+
+    Open it directly:
+      file:///path/to/halcyon/preview/halcyon_preview.html
+  -->
+
+  <style>
+    /* ===================================================================
+       Embedded copy of halcyon/design/design_tokens.css. The real file
+       uses CSS custom properties; here we inline them so the preview is
+       standalone.
+       =================================================================== */
+    :root {
+      /* Fonts. The browser bundles Inter, Inter Tight, Source Serif 4, and
+         JetBrains Mono. The preview falls back to system fonts if they
+         aren't installed. */
+      --halcyon-font-ui: "Inter", -apple-system, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+      --halcyon-font-display: "Inter Tight", "Inter", -apple-system,
+        "Segoe UI", sans-serif;
+      --halcyon-font-serif: "Source Serif 4", Georgia,
+        "Times New Roman", serif;
+      --halcyon-font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas,
+        monospace;
+
+      /* Color — light theme ("Vellum"). */
+      --halcyon-bg: #faf8f3;
+      --halcyon-surface: #f0eee8;
+      --halcyon-surface-2: #e8e5dc;
+      --halcyon-surface-3: #dedbcf;
+      --halcyon-border: #d8d4c8;
+      --halcyon-border-soft: #e4e0d2;
+      --halcyon-text: #2b2f38;
+      --halcyon-text-2: #6b6f78;
+      --halcyon-text-3: #a8a8a0;
+      --halcyon-accent: #7a9b76;
+      --halcyon-accent-press: #5f7d5c;
+      --halcyon-accent-soft: #eaeee6;
+      --halcyon-accent-text: #2f4a2c;
+      --halcyon-link: #5b7c99;
+      --halcyon-link-press: #45617b;
+      --halcyon-caution: #c4855c;
+      --halcyon-danger: #b05945;
+      --halcyon-success: #6b8a68;
+
+      /* Spacing. */
+      --halcyon-space-1: 4px;
+      --halcyon-space-2: 8px;
+      --halcyon-space-3: 12px;
+      --halcyon-space-4: 16px;
+      --halcyon-space-5: 20px;
+      --halcyon-space-6: 24px;
+      --halcyon-space-7: 32px;
+      --halcyon-space-8: 48px;
+      --halcyon-space-9: 64px;
+
+      /* Radii. */
+      --halcyon-radius-sm: 4px;
+      --halcyon-radius-md: 6px;
+      --halcyon-radius-lg: 12px;
+      --halcyon-radius-pill: 9999px;
+
+      /* Motion. */
+      --halcyon-ease: cubic-bezier(0.2, 0, 0, 1);
+      --halcyon-dur-fast: 140ms;
+      --halcyon-dur-med: 220ms;
+
+      /* Window */
+      --halcyon-frame-height: 28px;
+      --halcyon-tab-strip-height: 36px;
+      --halcyon-toolbar-height: 44px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --halcyon-bg: #1a1c1f;
+        --halcyon-surface: #212428;
+        --halcyon-surface-2: #2a2d32;
+        --halcyon-surface-3: #33363c;
+        --halcyon-border: #3a3d43;
+        --halcyon-border-soft: #2a2d32;
+        --halcyon-text: #e6e3dc;
+        --halcyon-text-2: #a8a89c;
+        --halcyon-text-3: #6c6e72;
+        --halcyon-accent: #9bbf97;
+        --halcyon-accent-press: #b5d6b1;
+        --halcyon-accent-soft: #2c3a2a;
+        --halcyon-accent-text: #d2e7cd;
+        --halcyon-link: #8da9c4;
+        --halcyon-link-press: #b0c5db;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #4a4a4a;
+      font: 13px/1.45 var(--halcyon-font-ui);
+      color: var(--halcyon-text);
+    }
+
+    /* ===================================================================
+       The browser window. Centered, with a soft shadow. Designed to be
+       opened at desktop width (>=960px); smaller screens will scroll.
+       =================================================================== */
+    .halcyon-preview-window {
+      position: absolute;
+      inset: 24px;
+      background: var(--halcyon-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.32),
+                  0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* --- Window frame ---------------------------------------------------- */
+    .halcyon-preview-frame {
+      flex: 0 0 var(--halcyon-frame-height);
+      background: var(--halcyon-surface);
+      border-bottom: 1px solid var(--halcyon-border-soft);
+      display: flex;
+      align-items: center;
+      padding: 0 var(--halcyon-space-3);
+      gap: var(--halcyon-space-2);
+      position: relative;
+    }
+
+    /* Slim 1px sage top border — the "horizon". */
+    .halcyon-preview-frame::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(
+        to right,
+        transparent 0%,
+        var(--halcyon-accent) 30%,
+        var(--halcyon-accent) 70%,
+        transparent 100%
+      );
+      opacity: 0.6;
+    }
+
+    .halcyon-preview-traffic {
+      display: flex;
+      gap: 6px;
+    }
+    .halcyon-preview-traffic-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.18);
+    }
+    .halcyon-preview-traffic-dot.close  { background: #d6554b; }
+    .halcyon-preview-traffic-dot.min    { background: #d9a72c; }
+    .halcyon-preview-traffic-dot.zoom   { background: #6aa659; }
+
+    .halcyon-preview-title {
+      flex: 1 1 auto;
+      text-align: center;
+      font: 500 12px/1 var(--halcyon-font-ui);
+      color: var(--halcyon-text-2);
+      letter-spacing: 0.01em;
+    }
+
+    /* --- Tab strip ------------------------------------------------------ */
+    .halcyon-preview-tabstrip {
+      flex: 0 0 var(--halcyon-tab-strip-height);
+      background: var(--halcyon-surface);
+      display: flex;
+      align-items: flex-end;
+      padding: 0 var(--halcyon-space-2);
+      gap: 2px;
+      border-bottom: 1px solid var(--halcyon-border-soft);
+      overflow: hidden;
+    }
+
+    .halcyon-preview-tab {
+      display: flex;
+      align-items: center;
+      gap: var(--halcyon-space-2);
+      padding: 0 var(--halcyon-space-3);
+      height: 28px;
+      background: transparent;
+      color: var(--halcyon-text-2);
+      border-radius: var(--halcyon-radius-md) var(--halcyon-radius-md) 0 0;
+      font: 400 12px/1 var(--halcyon-font-ui);
+      cursor: pointer;
+      position: relative;
+      transition: background var(--halcyon-dur-fast) var(--halcyon-ease),
+                  color var(--halcyon-dur-fast) var(--halcyon-ease);
+    }
+    .halcyon-preview-tab:hover {
+      background: var(--halcyon-surface-2);
+      color: var(--halcyon-text);
+    }
+    .halcyon-preview-tab.active {
+      background: var(--halcyon-bg);
+      color: var(--halcyon-text);
+    }
+    /* The active tab visually IS the page — a smooth continuation. */
+    .halcyon-preview-tab.active::after {
+      content: "";
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--halcyon-bg);
+    }
+    .halcyon-preview-tab-favicon {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      background: var(--halcyon-accent);
+      opacity: 0.65;
+    }
+    .halcyon-preview-tab-favicon.b { background: var(--halcyon-link); }
+    .halcyon-preview-tab-favicon.c { background: var(--halcyon-caution); }
+    .halcyon-preview-tab-title {
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .halcyon-preview-tab-close {
+      appearance: none;
+      background: transparent;
+      border: none;
+      color: var(--halcyon-text-3);
+      padding: 0 0 0 4px;
+      font: 14px/1 var(--halcyon-font-ui);
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity var(--halcyon-dur-fast) var(--halcyon-ease);
+    }
+    .halcyon-preview-tab:hover .halcyon-preview-tab-close,
+    .halcyon-preview-tab.active .halcyon-preview-tab-close {
+      opacity: 1;
+    }
+    .halcyon-preview-tab-close:hover {
+      color: var(--halcyon-text);
+    }
+
+    .halcyon-preview-tab-new {
+      appearance: none;
+      background: transparent;
+      border: none;
+      color: var(--halcyon-text-3);
+      font: 18px/1 var(--halcyon-font-ui);
+      padding: 0 var(--halcyon-space-2);
+      cursor: pointer;
+      align-self: center;
+      height: 28px;
+      transition: color var(--halcyon-dur-fast) var(--halcyon-ease);
+    }
+    .halcyon-preview-tab-new:hover { color: var(--halcyon-text); }
+
+    /* --- Toolbar -------------------------------------------------------- */
+    .halcyon-preview-toolbar {
+      flex: 0 0 var(--halcyon-toolbar-height);
+      background: var(--halcyon-bg);
+      display: flex;
+      align-items: center;
+      padding: 0 var(--halcyon-space-3);
+      gap: var(--halcyon-space-2);
+      border-bottom: 1px solid var(--halcyon-border-soft);
+    }
+    .halcyon-preview-nav {
+      appearance: none;
+      background: transparent;
+      border: none;
+      color: var(--halcyon-text-2);
+      width: 28px;
+      height: 28px;
+      border-radius: var(--halcyon-radius-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font: 16px/1 var(--halcyon-font-ui);
+      transition: background var(--halcyon-dur-fast) var(--halcyon-ease),
+                  color var(--halcyon-dur-fast) var(--halcyon-ease);
+    }
+    .halcyon-preview-nav:hover {
+      background: var(--halcyon-surface);
+      color: var(--halcyon-text);
+    }
+    .halcyon-preview-nav:disabled,
+    .halcyon-preview-nav[data-disabled="true"] {
+      color: var(--halcyon-text-3);
+      opacity: 0.45;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .halcyon-preview-omnibox {
+      flex: 1 1 auto;
+      height: 32px;
+      margin: 0 var(--halcyon-space-2);
+      background: var(--halcyon-surface);
+      border: 1px solid var(--halcyon-border);
+      border-radius: var(--halcyon-radius-pill);
+      display: flex;
+      align-items: center;
+      padding: 0 var(--halcyon-space-4);
+      color: var(--halcyon-text-2);
+      font: 13px/1 var(--halcyon-font-ui);
+      transition: border-color var(--halcyon-dur-fast) var(--halcyon-ease),
+                  background var(--halcyon-dur-fast) var(--halcyon-ease);
+    }
+    .halcyon-preview-omnibox:hover,
+    .halcyon-preview-omnibox:focus-within {
+      background: var(--halcyon-bg);
+      border-color: var(--halcyon-accent);
+    }
+    .halcyon-preview-omnibox-icon {
+      color: var(--halcyon-text-3);
+      margin-right: var(--halcyon-space-2);
+    }
+    .halcyon-preview-omnibox-text {
+      flex: 1 1 auto;
+      color: var(--halcyon-text);
+    }
+    .halcyon-preview-omnibox-margin-mark {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--halcyon-accent);
+      margin-left: var(--halcyon-space-3);
+      opacity: 0.6;
+      /* Indicates this URL has margin notes. */
+    }
+    .halcyon-preview-omnibox-margin-mark[data-empty="true"] { display: none; }
+
+    /* The Lantern indicator — small, calm, breathes when something happens. */
+    .halcyon-preview-lantern {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--halcyon-radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: pointer;
+      color: var(--halcyon-text-3);
+      transition: background var(--halcyon-dur-fast) var(--halcyon-ease),
+                  color var(--halcyon-dur-fast) var(--halcyon-ease);
+    }
+    .halcyon-preview-lantern:hover {
+      background: var(--halcyon-surface);
+      color: var(--halcyon-text-2);
+    }
+    .halcyon-preview-lantern-glow {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--halcyon-accent);
+      box-shadow: 0 0 0 0 var(--halcyon-accent);
+      animation: halcyon-lantern-breathe 3.6s var(--halcyon-ease) infinite;
+    }
+    .halcyon-preview-lantern[data-active="false"] .halcyon-preview-lantern-glow {
+      background: var(--halcyon-text-3);
+      animation: none;
+      box-shadow: none;
+    }
+    @keyframes halcyon-lantern-breathe {
+      0%   { transform: scale(1); box-shadow: 0 0 0 0 var(--halcyon-accent); }
+      50%  { transform: scale(1.2); box-shadow: 0 0 0 6px transparent; }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+    }
+
+    .halcyon-preview-cairn {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--halcyon-radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--halcyon-text-3);
+      cursor: pointer;
+      transition: background var(--halcyon-dur-fast) var(--halcyon-ease),
+                  color var(--halcyon-dur-fast) var(--halcyon-ease);
+    }
+    .halcyon-preview-cairn:hover {
+      background: var(--halcyon-surface);
+      color: var(--halcyon-text-2);
+    }
+
+    .halcyon-preview-menu {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--halcyon-radius-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      color: var(--halcyon-text-2);
+      cursor: pointer;
+      transition: background var(--halcyon-dur-fast) var(--halcyon-ease);
+    }
+    .halcyon-preview-menu:hover { background: var(--halcyon-surface); }
+    .halcyon-preview-menu-line {
+      width: 14px;
+      height: 1.5px;
+      background: currentColor;
+      border-radius: 1px;
+    }
+
+    /* --- Page contents (the Plume NTP) --------------------------------- */
+    .halcyon-preview-contents {
+      flex: 1 1 auto;
+      background: var(--halcyon-bg);
+      overflow: auto;
+      position: relative;
+    }
+    .halcyon-preview-plume {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 96px 24px 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+      text-align: center;
+    }
+    .halcyon-preview-plume-mark {
+      color: var(--halcyon-accent);
+      font: 24px/1 var(--halcyon-font-display);
+      letter-spacing: -0.02em;
+    }
+    .halcyon-preview-plume-greeting {
+      font: 500 34px/40px var(--halcyon-font-display);
+      letter-spacing: -0.02em;
+      color: var(--halcyon-text);
+      margin: 0;
+    }
+    .halcyon-preview-plume-date {
+      font: 13px/1.45 var(--halcyon-font-ui);
+      color: var(--halcyon-text-2);
+      margin: 0;
+    }
+    .halcyon-preview-plume-quote {
+      max-width: 480px;
+      font: italic 22px/1.5 var(--halcyon-font-serif);
+      color: var(--halcyon-text-2);
+      margin: 0;
+    }
+    .halcyon-preview-plume-quote-attr {
+      font: 13px/1.45 var(--halcyon-font-ui);
+      color: var(--halcyon-text-3);
+      margin-top: 8px;
+    }
+    .halcyon-preview-plume-search {
+      width: 100%;
+      max-width: 480px;
+      height: 40px;
+      background: var(--halcyon-surface);
+      border: 1px solid var(--halcyon-border);
+      border-radius: var(--halcyon-radius-pill);
+      padding: 0 20px;
+      font: 14px/1 var(--halcyon-font-ui);
+      color: var(--halcyon-text-3);
+      display: flex;
+      align-items: center;
+      transition: border-color var(--halcyon-dur-fast) var(--halcyon-ease);
+    }
+    .halcyon-preview-plume-search:hover {
+      border-color: var(--halcyon-accent);
+    }
+    .halcyon-preview-plume-recent {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+      margin-top: 32px;
+    }
+    .halcyon-preview-plume-recent-title {
+      font: 13px/1.45 var(--halcyon-font-ui);
+      color: var(--halcyon-text-3);
+      margin: 0;
+    }
+    .halcyon-preview-plume-recent-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .halcyon-preview-plume-recent-item {
+      font: 13px/1.45 var(--halcyon-font-ui);
+      color: var(--halcyon-text-2);
+      opacity: 0.7;
+      cursor: pointer;
+      transition: opacity var(--halcyon-dur-fast) var(--halcyon-ease);
+    }
+    .halcyon-preview-plume-recent-item:hover {
+      opacity: 1;
+      color: var(--halcyon-text);
+    }
+
+    /* --- Info panel below the browser window --------------------------- */
+    .halcyon-preview-info {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: rgba(255, 255, 255, 0.96);
+      color: #2b2f38;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font: 12px/1.45 var(--halcyon-font-ui);
+      max-width: 280px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(8px);
+    }
+    @media (prefers-color-scheme: dark) {
+      .halcyon-preview-info {
+        background: rgba(33, 36, 40, 0.96);
+        color: #e6e3dc;
+      }
+    }
+    .halcyon-preview-info h2 {
+      font: 500 13px/1.2 var(--halcyon-font-ui);
+      margin: 0 0 4px;
+    }
+    .halcyon-preview-info p {
+      margin: 0 0 8px;
+      color: inherit;
+      opacity: 0.85;
+    }
+    .halcyon-preview-info p:last-child { margin-bottom: 0; }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .halcyon-preview-lantern-glow { animation: none !important; }
+      .halcyon-preview-tab,
+      .halcyon-preview-nav,
+      .halcyon-preview-omnibox,
+      .halcyon-preview-lantern,
+      .halcyon-preview-cairn,
+      .halcyon-preview-menu,
+      .halcyon-preview-plume-recent-item,
+      .halcyon-preview-plume-search { transition: none !important; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="halcyon-preview-window" role="application" aria-label="Halcyon browser preview">
+
+    <!-- Window frame (slim, with the sage "horizon" line on top) -->
+    <div class="halcyon-preview-frame">
+      <div class="halcyon-preview-traffic">
+        <span class="halcyon-preview-traffic-dot close" title="Close"></span>
+        <span class="halcyon-preview-traffic-dot min" title="Minimise"></span>
+        <span class="halcyon-preview-traffic-dot zoom" title="Zoom"></span>
+      </div>
+      <div class="halcyon-preview-title">Halcyon — The Plume</div>
+      <div style="width: 60px"></div><!-- visual balance for the traffic lights -->
+    </div>
+
+    <!-- Tab strip -->
+    <div class="halcyon-preview-tabstrip" role="tablist" aria-label="Tabs">
+      <div class="halcyon-preview-tab active" role="tab" aria-selected="true">
+        <span class="halcyon-preview-tab-favicon"></span>
+        <span class="halcyon-preview-tab-title">The Plume</span>
+        <button class="halcyon-preview-tab-close" aria-label="Close tab">×</button>
+      </div>
+      <div class="halcyon-preview-tab" role="tab" aria-selected="false">
+        <span class="halcyon-preview-tab-favicon b"></span>
+        <span class="halcyon-preview-tab-title">halcyon-browser.github.io</span>
+        <button class="halcyon-preview-tab-close" aria-label="Close tab">×</button>
+      </div>
+      <div class="halcyon-preview-tab" role="tab" aria-selected="false">
+        <span class="halcyon-preview-tab-favicon c"></span>
+        <span class="halcyon-preview-tab-title">Reading — Edge cases</span>
+        <button class="halcyon-preview-tab-close" aria-label="Close tab">×</button>
+      </div>
+      <button class="halcyon-preview-tab-new" aria-label="New tab">+</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="halcyon-preview-toolbar" role="toolbar" aria-label="Toolbar">
+      <button class="halcyon-preview-nav" aria-label="Back">‹</button>
+      <button class="halcyon-preview-nav" aria-label="Forward" data-disabled="true">›</button>
+      <button class="halcyon-preview-nav" aria-label="Reload">↻</button>
+
+      <div class="halcyon-preview-omnibox" role="combobox" aria-label="Address and search">
+        <span class="halcyon-preview-omnibox-icon">⌖</span>
+        <span class="halcyon-preview-omnibox-text">halcyon://plume</span>
+        <span class="halcyon-preview-omnibox-margin-mark" aria-label="This page has 2 margin notes" title="This page has 2 margin notes"></span>
+      </div>
+
+      <!-- The Lantern indicator — soft glow when something is happening -->
+      <div class="halcyon-preview-lantern" data-active="true"
+           role="button" aria-label="The Lantern: 3 things to know about this site"
+           title="The Lantern — 3 things to know about this site">
+        <span class="halcyon-preview-lantern-glow"></span>
+      </div>
+
+      <!-- The Cairn — bookmarks as a popup -->
+      <div class="halcyon-preview-cairn" role="button"
+           aria-label="Cairn: bookmarks"
+           title="Cairn — bookmarks">
+        <!-- Three stacked stones, drawn with simple divs. -->
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+             stroke="currentColor" stroke-width="1.4"
+             stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="8" cy="13" rx="3" ry="1"/>
+          <ellipse cx="8" cy="9" rx="2.4" ry="0.9"/>
+          <ellipse cx="8" cy="5" rx="1.8" ry="0.8"/>
+        </svg>
+      </div>
+
+      <!-- The menu — three short horizontal lines, not three dots -->
+      <div class="halcyon-preview-menu" role="button"
+           aria-label="Menu" title="Menu">
+        <span class="halcyon-preview-menu-line"></span>
+        <span class="halcyon-preview-menu-line"></span>
+        <span class="halcyon-preview-menu-line"></span>
+      </div>
+    </div>
+
+    <!-- Page contents: the Plume NTP -->
+    <div class="halcyon-preview-contents">
+      <div class="halcyon-preview-plume">
+        <div class="halcyon-preview-plume-mark" aria-hidden="true">halcyon</div>
+
+        <h1 class="halcyon-preview-plume-greeting">Good morning</h1>
+        <p class="halcyon-preview-plume-date" id="halcyon-preview-date"></p>
+
+        <blockquote class="halcyon-preview-plume-quote">
+          The mind is not a vessel to be filled, but a fire to be kindled.
+          <div class="halcyon-preview-plume-quote-attr">— Plutarch</div>
+        </blockquote>
+
+        <div class="halcyon-preview-plume-search">
+          Search or type a URL
+        </div>
+
+        <div class="halcyon-preview-plume-recent">
+          <p class="halcyon-preview-plume-recent-title">Recently visited</p>
+          <div class="halcyon-preview-plume-recent-list">
+            <div class="halcyon-preview-plume-recent-item">halcyon-browser.github.io</div>
+            <div class="halcyon-preview-plume-recent-item">news.ycombinator.com</div>
+            <div class="halcyon-preview-plume-recent-item">designsystems.cc</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Info panel -->
+  <div class="halcyon-preview-info">
+    <h2>Halcyon — visual preview</h2>
+    <p>This is a static HTML rendering of the Halcyon chrome. Every value is
+    a faithful copy of <code>design_tokens.css</code>; the C++ side mirrors
+    the same values via <code>halcyon_color_palette.h</code>.</p>
+    <p>The Lantern (top-right of the toolbar) is breathing — that's the only
+    animation in the chrome. Click anywhere to pause it.</p>
+  </div>
+
+  <script>
+    // Date line, in the Halcyon voice (long form, no Oxford comma).
+    (function() {
+      const now = new Date();
+      const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      const text = now.toLocaleDateString(undefined, opts);
+      const el = document.getElementById('halcyon-preview-date');
+      if (el) el.textContent = text;
+    })();
+
+    // Pause the Lantern breathing on click.
+    (function() {
+      const lantern = document.querySelector('.halcyon-preview-lantern');
+      const glow = document.querySelector('.halcyon-preview-lantern-glow');
+      document.addEventListener('click', (e) => {
+        if (!lantern.contains(e.target)) {
+          // Clicking anywhere outside the lantern toggles its activity state.
+          const active = lantern.getAttribute('data-active') === 'true';
+          lantern.setAttribute('data-active', String(!active));
+        }
+      });
+    })();
+
+    // Activate tabs.
+    (function() {
+      const tabs = document.querySelectorAll('.halcyon-preview-tab');
+      tabs.forEach((t) => t.addEventListener('click', (e) => {
+        if (e.target.classList.contains('halcyon-preview-tab-close')) return;
+        tabs.forEach((x) => {
+          x.classList.remove('active');
+          x.setAttribute('aria-selected', 'false');
+        });
+        t.classList.add('active');
+        t.setAttribute('aria-selected', 'true');
+      }));
+    })();
+  </script>
+
+</body>
+</html>

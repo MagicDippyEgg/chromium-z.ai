@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <!--
+    Margin Notes — overlay UI.
+
+    This HTML is NOT loaded as a chrome:// page. It is loaded into a Shadow
+    DOM root that the Margin Notes content script attaches to the host
+    page (see margin_notes_bootstrap.js). All CSS below is scoped to that
+    shadow root — it cannot leak into the page, and the page's styles
+    cannot leak into it.
+
+    The document here is a single <aside> element containing the right-margin
+    rail and the notes. The C++ side never sees this HTML; it only sees
+    chrome.send messages from margin_notes.js.
+
+    Why a Shadow DOM and not an iframe:
+      - iframes don't inherit the page's font scale, breaking accessibility.
+      - Shadow DOM keeps the overlay's CSS entirely isolated, AND inherits
+        the user's font preferences.
+      - iframes would create a separate origin for the overlay; the host
+        page would see a frame on every page, which is more fingerprintable.
+  -->
+  <title>Margin Notes (shadow DOM)</title>
+  <link rel="stylesheet" href="margin_notes.css">
+</head>
+<body>
+
+  <!--
+    The rail is a thin strip on the right edge of the page. Hovering it
+    expands the notes column. The rail is always present (when notes exist
+    for this URL); the column is only visible on hover or focus-within.
+  -->
+  <aside class="halcyon-margin-rail"
+         id="halcyon-margin-rail"
+         role="complementary"
+         aria-label="Margin notes for this page"
+         data-state="collapsed">
+
+    <button class="halcyon-margin-rail-tab"
+            id="halcyon-margin-rail-tab"
+            type="button"
+            aria-expanded="false"
+            aria-controls="halcyon-margin-column"
+            title="Open margin notes">
+      <span class="halcyon-margin-rail-mark" aria-hidden="true">·</span>
+      <span class="halcyon-margin-rail-count"
+            id="halcyon-margin-rail-count"
+            aria-live="polite"></span>
+    </button>
+
+    <div class="halcyon-margin-column"
+         id="halcyon-margin-column"
+         aria-live="polite">
+
+      <header class="halcyon-margin-column-header">
+        <span class="halcyon-margin-column-title">Margin notes</span>
+        <button class="halcyon-margin-column-add"
+                id="halcyon-margin-add"
+                type="button"
+                title="Add a margin note">
+          <halcyon-icon name="plus" size="14"></halcyon-icon>
+          <span>Add</span>
+        </button>
+      </header>
+
+      <ol class="halcyon-margin-notes"
+          id="halcyon-margin-notes"
+          aria-label="Notes for this page">
+        <!-- Notes are injected by JS. Each note is a <li> with a textarea,
+             a "selection quote" (the text on the page the note refers to),
+             a timestamp footer, and a delete button. -->
+      </ol>
+
+      <footer class="halcyon-margin-column-footer">
+        <p class="halcyon-margin-footer-text">Notes for this page only.</p>
+      </footer>
+
+    </div>
+
+  </aside>
+
+  <script src="margin_notes.js" defer></script>
+</body>
+</html>

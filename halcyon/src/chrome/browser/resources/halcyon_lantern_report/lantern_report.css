@@ -1,0 +1,264 @@
+/* Lantern Report — chrome://halcyon-lantern-report
+ *
+ * The report is a single-column page, max-width 720px, centered. The visual
+ * intent: a calm ledger of what happened this week. No charts that animate
+ * on scroll. No "you did great!" emoji. Just numbers and sentences.
+ */
+
+.halcyon-lantern-report {
+  min-height: 100vh;
+  background: var(--halcyon-bg);
+  color: var(--halcyon-text);
+  font: var(--halcyon-text-body);
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Header ------------------------------------------------------------ */
+
+.halcyon-lantern-report-header {
+  border-bottom: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  padding: var(--halcyon-space-6) var(--halcyon-space-6) var(--halcyon-space-5);
+}
+
+.halcyon-lantern-report-header-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  align-items: baseline;
+  gap: var(--halcyon-space-3);
+  flex-wrap: wrap;
+}
+
+.halcyon-lantern-report-title {
+  font: var(--halcyon-text-headline);
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.halcyon-lantern-report-range {
+  font: var(--halcyon-text-body);
+  color: var(--halcyon-text-2);
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+.halcyon-lantern-report-recompute {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--halcyon-space-2);
+  background: transparent;
+  border: var(--halcyon-stroke-thin) solid var(--halcyon-accent);
+  color: var(--halcyon-accent-text);
+  padding: var(--halcyon-space-1) var(--halcyon-space-3);
+  border-radius: var(--halcyon-radius-pill);
+  font: var(--halcyon-text-caption);
+  cursor: pointer;
+  transition: background var(--halcyon-dur-fast) var(--halcyon-ease);
+  flex: 0 0 auto;
+}
+
+.halcyon-lantern-report-recompute:hover {
+  background: var(--halcyon-accent-soft);
+}
+
+/* --- Main ------------------------------------------------------------- */
+
+.halcyon-lantern-report-main {
+  flex: 1 1 auto;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--halcyon-space-6);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--halcyon-space-7);
+}
+
+/* --- Summary --------------------------------------------------------- */
+
+.halcyon-lantern-report-summary-text {
+  font: var(--halcyon-text-body-lg);
+  color: var(--halcyon-text);
+  margin: 0;
+  line-height: 1.55;
+}
+
+/* --- Breakdown (tide-table bars) ------------------------------------- */
+
+.halcyon-lantern-report-breakdown-title,
+.halcyon-lantern-report-sites-title {
+  font: var(--halcyon-text-title);
+  margin: 0 0 var(--halcyon-space-4);
+}
+
+.halcyon-lantern-report-breakdown-list,
+.halcyon-lantern-report-sites-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--halcyon-space-3);
+}
+
+.halcyon-lantern-report-row {
+  display: grid;
+  grid-template-columns: 200px 1fr auto;
+  align-items: center;
+  gap: var(--halcyon-space-3);
+  padding: var(--halcyon-space-3) var(--halcyon-space-4);
+  background: var(--halcyon-surface);
+  border: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  border-radius: var(--halcyon-radius-md);
+}
+
+.halcyon-lantern-report-row-label {
+  font: var(--halcyon-text-subtitle);
+  color: var(--halcyon-text);
+}
+
+.halcyon-lantern-report-row-bar {
+  height: 8px;
+  background: var(--halcyon-surface-2);
+  border-radius: var(--halcyon-radius-pill);
+  overflow: hidden;
+  position: relative;
+}
+
+.halcyon-lantern-report-row-bar-fill {
+  height: 100%;
+  background: var(--halcyon-accent);
+  border-radius: var(--halcyon-radius-pill);
+  transition: width 320ms var(--halcyon-ease);
+}
+
+.halcyon-lantern-report-row-count {
+  font: var(--halcyon-text-body);
+  color: var(--halcyon-text-2);
+  font-variant-numeric: tabular-nums;
+  min-width: 64px;
+  text-align: right;
+}
+
+/* --- Per-site rows (expandable) -------------------------------------- */
+
+.halcyon-lantern-report-site {
+  background: var(--halcyon-surface);
+  border: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  border-radius: var(--halcyon-radius-md);
+  overflow: hidden;
+}
+
+.halcyon-lantern-report-site-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--halcyon-space-3);
+  padding: var(--halcyon-space-3) var(--halcyon-space-4);
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+.halcyon-lantern-report-site-summary:hover {
+  background: var(--halcyon-surface-2);
+}
+
+.halcyon-lantern-report-site-summary:focus-visible {
+  outline: var(--halcyon-stroke-thin) solid var(--halcyon-accent);
+  outline-offset: -2px;
+}
+
+.halcyon-lantern-report-site-origin {
+  font: var(--halcyon-text-subtitle);
+  color: var(--halcyon-text);
+}
+
+.halcyon-lantern-report-site-meta {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.halcyon-lantern-report-site-detail {
+  display: none;
+  padding: 0 var(--halcyon-space-4) var(--halcyon-space-3);
+  font: var(--halcyon-text-body);
+  color: var(--halcyon-text-2);
+}
+
+.halcyon-lantern-report-site[aria-expanded="true"] .halcyon-lantern-report-site-detail {
+  display: block;
+}
+
+.halcyon-lantern-report-site-detail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--halcyon-space-1);
+}
+
+.halcyon-lantern-report-site-detail-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--halcyon-space-2);
+}
+
+.halcyon-lantern-report-site-detail-row::before {
+  content: "·";
+  color: var(--halcyon-text-3);
+}
+
+/* --- Footer --------------------------------------------------------- */
+
+.halcyon-lantern-report-footer {
+  border-top: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  padding: var(--halcyon-space-3) var(--halcyon-space-6);
+  text-align: center;
+}
+
+.halcyon-lantern-report-footer-text {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-3);
+  margin: 0;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* --- Dark theme (Eclipse) -------------------------------------------- */
+
+@media (prefers-color-scheme: dark) {
+  .halcyon-lantern-report-header,
+  .halcyon-lantern-report-footer {
+    border-color: var(--halcyon-eclipse-border-soft);
+  }
+
+  .halcyon-lantern-report-row,
+  .halcyon-lantern-report-site {
+    background: var(--halcyon-eclipse-surface);
+    border-color: var(--halcyon-eclipse-border-soft);
+  }
+
+  .halcyon-lantern-report-row-bar {
+    background: var(--halcyon-eclipse-surface-2);
+  }
+
+  .halcyon-lantern-report-site-summary:hover {
+    background: var(--halcyon-eclipse-surface-2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .halcyon-lantern-report-row-bar-fill,
+  .halcyon-lantern-report-recompute {
+    transition: none;
+  }
+}

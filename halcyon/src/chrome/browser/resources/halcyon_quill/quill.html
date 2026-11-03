@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Quill — Halcyon</title>
+
+  <!--
+    Quill is the Halcyon note-taking side panel. It opens on any page via
+    ⌘⇧N (or Ctrl+Shift+N). It is per-origin: each origin has its own stack
+    of notes. Notes are stored locally; sync is opt-in and off by default.
+
+    The page is intentionally minimal. There is:
+      - a header with the origin and a "new note" button
+      - a vertical list of notes (newest first)
+      - each note is a single textarea with a timestamp footer; no title
+      - a footer with a single line: "Notes stay on this device."
+
+    There is NOT:
+      - a rich-text editor (Quill is plain markdown; render is on read)
+      - tags or categories (origin is the only grouping)
+      - a search field (use the system find-in-page)
+      - an export button (the About page has export)
+
+    See halcyon/branding/brand_book.md §13.10 for the design intent.
+  -->
+
+  <link rel="stylesheet" href="chrome://resources/halcyon_shared/design_tokens.css">
+  <link rel="stylesheet" href="chrome://resources/halcyon_shared/halcyon_side_panel.css">
+  <link rel="stylesheet" href="chrome://resources/halcyon_quill/quill.css">
+
+  <script src="chrome://resources/halcyon_shared/js/halcyon_theme.js" defer></script>
+  <script src="chrome://resources/halcyon_shared/js/halcyon_icon.js" defer></script>
+  <script src="chrome://resources/halcyon_quill/quill.js" type="module" defer></script>
+</head>
+<body class="halcyon-quill" data-empty="true">
+
+  <header class="halcyon-quill-header">
+    <div class="halcyon-quill-origin" id="halcyon-quill-origin">
+      <!-- Origin shown here, e.g. "example.com". Set by JS. -->
+      <span class="halcyon-quill-origin-glyph" aria-hidden="true">
+        <halcyon-icon name="quill" size="16"></halcyon-icon>
+      </span>
+      <span class="halcyon-quill-origin-text" id="halcyon-quill-origin-text">—</span>
+    </div>
+    <button class="halcyon-quill-new" id="halcyon-quill-new" type="button" title="New note (⌘N)">
+      <halcyon-icon name="plus" size="14"></halcyon-icon>
+      <span>New note</span>
+    </button>
+  </header>
+
+  <main class="halcyon-quill-list" id="halcyon-quill-list" aria-label="Notes for this origin">
+
+    <!--
+      Empty state. Replaced by JS when there are notes. The empty state is
+      intentionally a single sentence — not an illustration, not a call to
+      action with a button. The "New note" button is already in the header.
+    -->
+    <div class="halcyon-quill-empty" id="halcyon-quill-empty">
+      <p class="halcyon-quill-empty-text">No notes for this site yet.</p>
+      <p class="halcyon-quill-empty-hint">Press <kbd>⌘⇧N</kbd> to start one.</p>
+    </div>
+
+    <!--
+      Notes are injected by JS. Each note is a <article class="halcyon-quill-note">
+      with a <textarea> and a footer that shows the timestamp.
+
+      The textarea autosaves on input (debounced 400ms). There is no Save
+      button. There is no "edited" indicator. The footer simply shows the
+      last-modified time in plain language.
+    -->
+  </main>
+
+  <footer class="halcyon-quill-footer">
+    <p class="halcyon-quill-footer-text">Notes stay on this device.</p>
+    <p class="halcyon-quill-footer-count" id="halcyon-quill-count" aria-live="polite"></p>
+  </footer>
+
+</body>
+</html>

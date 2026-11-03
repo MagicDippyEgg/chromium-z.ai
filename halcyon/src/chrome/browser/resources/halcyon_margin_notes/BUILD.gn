@@ -1,0 +1,28 @@
+# Copyright 2026 The Halcyon Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Margin Notes overlay resources. Packed and shipped to content scripts
+# via the user_scripts resource bundle (see the integration patch
+# patches/user_scripts_inject_margin_notes.patch).
+
+import("//tools/grit/grit_rule.gni")
+
+grit("margin_notes") {
+  source = "margin_notes.grd"
+  outputs = [
+    "grit/margin_notes.h",
+    "grit/margin_notes_map.cc",
+    "grit/margin_notes_map.h",
+    "grit/margin_notes_resources.pak",
+  ]
+}
+
+source_set("margin_notes_resources") {
+  sources = [
+    "margin_notes.html",
+    "margin_notes.css",
+    "margin_notes.js",
+    "margin_notes_bootstrap.js",
+  ]
+}

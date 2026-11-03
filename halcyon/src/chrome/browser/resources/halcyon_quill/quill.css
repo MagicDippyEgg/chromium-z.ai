@@ -1,0 +1,263 @@
+/* Quill — Halcyon note-taking side panel.
+ *
+ * The side panel is narrow (320px on desktop; full width on narrow screens).
+ * The visual intent: a stack of paper cards on a calm desk. Each card is a
+ * single note. The most recent is at the top. There is no separator between
+ * notes other than whitespace — the cards themselves create the rhythm.
+ */
+
+.halcyon-quill {
+  min-height: 100vh;
+  background: var(--halcyon-bg);
+  color: var(--halcyon-text);
+  font: var(--halcyon-text-body);
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Header ------------------------------------------------------------- */
+
+.halcyon-quill-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--halcyon-space-3);
+  padding: var(--halcyon-space-3) var(--halcyon-space-4);
+  border-bottom: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  background: var(--halcyon-surface);
+  flex-shrink: 0;
+}
+
+.halcyon-quill-origin {
+  display: flex;
+  align-items: center;
+  gap: var(--halcyon-space-2);
+  min-width: 0;
+}
+
+.halcyon-quill-origin-glyph {
+  color: var(--halcyon-accent);
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.halcyon-quill-origin-text {
+  font: var(--halcyon-text-subtitle);
+  color: var(--halcyon-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.halcyon-quill-new {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--halcyon-space-2);
+  padding: var(--halcyon-space-1) var(--halcyon-space-3);
+  background: transparent;
+  color: var(--halcyon-accent-text);
+  border: var(--halcyon-stroke-thin) solid var(--halcyon-accent);
+  border-radius: var(--halcyon-radius-pill);
+  font: var(--halcyon-text-caption);
+  cursor: pointer;
+  transition: background var(--halcyon-dur-fast) var(--halcyon-ease),
+              border-color var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+
+.halcyon-quill-new:hover {
+  background: var(--halcyon-accent-soft);
+}
+
+.halcyon-quill-new:active {
+  background: var(--halcyon-accent-press);
+  color: var(--halcyon-text-on-accent);
+  border-color: var(--halcyon-accent-press);
+}
+
+.halcyon-quill-new:focus-visible {
+  outline: var(--halcyon-stroke-bold) solid var(--halcyon-accent);
+  outline-offset: 2px;
+}
+
+/* --- List --------------------------------------------------------------- */
+
+.halcyon-quill-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--halcyon-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--halcyon-space-4);
+}
+
+.halcyon-quill-list[data-empty="true"] {
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Empty state -------------------------------------------------------- */
+
+.halcyon-quill-empty {
+  text-align: center;
+  color: var(--halcyon-text-2);
+  max-width: 240px;
+}
+
+.halcyon-quill-empty-text {
+  font: var(--halcyon-text-body-lg);
+  color: var(--halcyon-text);
+  margin: 0 0 var(--halcyon-space-2);
+}
+
+.halcyon-quill-empty-hint {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-3);
+  margin: 0;
+}
+
+.halcyon-quill-empty-hint kbd {
+  font: var(--halcyon-text-caption);
+  background: var(--halcyon-surface-2);
+  border: var(--halcyon-stroke-hairline) solid var(--halcyon-border);
+  border-radius: var(--halcyon-radius-sm);
+  padding: 1px var(--halcyon-space-1);
+  color: var(--halcyon-text-2);
+}
+
+/* --- Note card ---------------------------------------------------------- */
+
+.halcyon-quill-note {
+  background: var(--halcyon-surface);
+  border: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  border-radius: var(--halcyon-radius-lg);
+  padding: var(--halcyon-space-3) var(--halcyon-space-4) var(--halcyon-space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--halcyon-space-2);
+  transition: border-color var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+
+.halcyon-quill-note:focus-within {
+  border-color: var(--halcyon-accent);
+}
+
+.halcyon-quill-note-textarea {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  border: none;
+  background: transparent;
+  color: var(--halcyon-text);
+  font: var(--halcyon-text-body);
+  line-height: var(--halcyon-leading-relaxed, 1.6);
+  padding: 0;
+  outline: none;
+}
+
+.halcyon-quill-note-textarea::placeholder {
+  color: var(--halcyon-text-3);
+  font-style: italic;
+}
+
+.halcyon-quill-note-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--halcyon-space-2);
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-3);
+}
+
+.halcyon-quill-note-time {
+  /* Plain language: "just now", "5 min ago", "Yesterday", "Nov 3". */
+}
+
+.halcyon-quill-note-actions {
+  display: inline-flex;
+  gap: var(--halcyon-space-1);
+  opacity: 0;
+  transition: opacity var(--halcyon-dur-fast) var(--halcyon-ease);
+}
+
+.halcyon-quill-note:focus-within .halcyon-quill-note-actions {
+  opacity: 1;
+}
+
+.halcyon-quill-note-action {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--halcyon-text-3);
+  padding: var(--halcyon-space-1);
+  border-radius: var(--halcyon-radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.halcyon-quill-note-action:hover {
+  color: var(--halcyon-danger);
+  background: var(--halcyon-danger-soft);
+}
+
+.halcyon-quill-note-action:focus-visible {
+  outline: var(--halcyon-stroke-thin) solid var(--halcyon-accent);
+  outline-offset: 1px;
+}
+
+/* --- Footer ------------------------------------------------------------- */
+
+.halcyon-quill-footer {
+  flex-shrink: 0;
+  padding: var(--halcyon-space-2) var(--halcyon-space-4);
+  border-top: var(--halcyon-stroke-hairline) solid var(--halcyon-border-soft);
+  background: var(--halcyon-surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--halcyon-space-3);
+}
+
+.halcyon-quill-footer-text {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-3);
+  margin: 0;
+}
+
+.halcyon-quill-footer-count {
+  font: var(--halcyon-text-caption);
+  color: var(--halcyon-text-2);
+  margin: 0;
+}
+
+/* --- Dark theme (Eclipse) ----------------------------------------------- */
+
+@media (prefers-color-scheme: dark) {
+  .halcyon-quill-header,
+  .halcyon-quill-footer {
+    background: var(--halcyon-eclipse-surface);
+    border-color: var(--halcyon-eclipse-border-soft);
+  }
+
+  .halcyon-quill-note {
+    background: var(--halcyon-eclipse-surface);
+    border-color: var(--halcyon-eclipse-border-soft);
+  }
+
+  .halcyon-quill-empty-hint kbd {
+    background: var(--halcyon-eclipse-surface-2);
+    border-color: var(--halcyon-eclipse-border);
+  }
+}
+
+/* --- Reduced motion ----------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .halcyon-quill-new,
+  .halcyon-quill-note,
+  .halcyon-quill-note-actions {
+    transition: none;
+  }
+}
