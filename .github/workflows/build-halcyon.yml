@@ -156,31 +156,40 @@ jobs:
         run: |
           python3 halcyon/design/verify_tokens.py
 
-      - name: Fetch Chromium source tree (shallow, for patch-apply check)
-        # The patches only touch top-level Chromium files (under chrome/,
-        # build/, ui/) — no third-party deps. So a shallow git clone of
-        # chromium/src.git is enough; we don't need depot_tools or
-        # gclient sync here. This brings the step down from ~15 minutes
-        # (full fetch) to ~3 minutes (shallow clone, ~3 GB).
+      - name: Fetch Chromium source tree (sparse, for patch-apply check)
+        # The patches only touch files under:
+        #   chrome/app/, chrome/browser/ui/, chrome/browser/themes/, build/config/
+        # We use a shallow + sparse checkout so we only download those
+        # directories, not the entire ~400k-file Chromium tree. This
+        # brings the step from ~10 minutes (full shallow clone, ~3 GB)
+        # down to ~1-2 minutes (sparse shallow clone, ~50 MB).
         #
-        # We use --filter=blob:none for a partial clone: only the blobs
-        # we touch get downloaded. Combined with --depth 1, this means
-        # we end up with the working tree files we need and not much
-        # else. (The patch context lines pull in adjacent code, so we
-        # can't go more aggressive than this.)
+        # The patches' context lines pull in adjacent code within the
+        # same files, so the files we fetch are sufficient — `git apply
+        # --check` won't need anything outside the sparse-checkout set.
         run: |
           mkdir -p "$CHROMIUM_SRC"
           cd "$CHROMIUM_SRC"
           git init
           git remote add origin https://chromium.googlesource.com/chromium/src.git
-          # Fetch only the main branch, depth 1, no tags. --filter=blob:none
-          # makes it a partial clone; we'll get the actual file contents on
-          # the checkout step.
-          git fetch --depth 1 --filter=blob:none origin main
+          # Partial clone: only the tree objects come down now; blobs come
+          # on checkout, but only for paths in the sparse-checkout set.
+          git fetch --depth 1 --filter=blob:none --sparse origin main
           git checkout FETCH_HEAD
+          # Now expand the sparse-checkout set to include the directories
+          # our patches touch.
+          git sparse-checkout add \
+            chrome/app \
+            chrome/browser/ui \
+            chrome/browser/themes \
+            build/config
           git log --oneline -1
-          # Show how big the resulting tree is.
+          echo "=== fetched tree size ==="
           du -sh "$CHROMIUM_SRC" || true
+          echo "=== files in chrome/browser/ui/views/frame ==="
+          ls chrome/browser/ui/views/frame/ 2>&1 | head -10 || true
+          echo "=== files in chrome/browser/ui/webui ==="
+          ls chrome/browser/ui/webui/ 2>&1 | head -10 || true
 
       - name: Verify patches apply
         run: |
