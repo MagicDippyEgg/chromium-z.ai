@@ -1104,5 +1104,5 @@ jobs:
               }
             }
             console.log('Cleanup complete.');
-          env:
-            CACHE_ARTIFACT: ${{ env.CACHE_ARTIFACT }}
+        env:
+          CACHE_ARTIFACT: ${{ env.CACHE_ARTIFACT }}
