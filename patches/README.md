@@ -11,11 +11,18 @@ have shifted, the patches need to be regenerated against the new revision.
 
 **Pinned revision (current):**
 ```
-SHA:     ff897141277d798d72ea3ae0a94ff3a51956b267
-Version: Chromium 159.0.8142.0
-Branch:  main
-Date:    2026-11-04 (pinned at the time of writing)
+SHA:         f0ad4fd4ee3dc3ff81e176260e3f1bf441937d29
+Version:     Chromium 159.0.8141.0
+Tag:         refs/tags/159.0.8141.0
+Tarball URL: https://commondatastorage.googleapis.com/chromium-browser-official/chromium-159.0.8141.0.tar.xz
+Date:        2026-11-04 (pinned at the time of writing)
 ```
+
+The pin uses the official Chromium source tarball (~5 GB) instead of
+`gclient sync` (~30 GB). This is essential for fitting the build on
+GitHub Actions free runners. The tarball is published for every
+Chromium version that has a release branch; we chose 159.0.8141.0
+because it is the latest 159.x with a published tarball.
 
 The pinned SHA is captured in `halcyon/build/CHROMIUM_PIN.txt` for
 machine-readable access.

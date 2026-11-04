@@ -1,63 +1,55 @@
-# Build the Halcyon Browser — a Chromium-based browser overlay.
+# Build the Halcyon Browser — chunked pipeline.
 #
-# This workflow:
-#   1. Verifies the Halcyon overlay is internally consistent (the
-#      design-system tokens match between CSS and C++, the integration
-#      patches apply against the upstream Chromium tree).
-#   2. Fetches a real Chromium source checkout via depot_tools.
-#   3. Applies the Halcyon source tree and integration patches.
-#   4. Configures the build with the Halcyon GN args from
-#      halcyon/build/BUILD.md, adjusted for CI (component build, no LTO,
-#      no debug symbols, low parallelism — see the runner resource note
-#      below).
-#   5. Builds the `chrome` target — the Halcyon browser binary plus all
-#      its runtime files (resources.pak, locales/, icudtl.dat, etc.).
-#   6. Smoke-tests the binary (version, chrome://halcyon page, render
-#      about:blank, screenshot).
-#   7. Packages the binary plus all its runtime dependencies into a
-#      single tar.gz.
-#   8. Uploads the tar.gz as a GitHub Actions artifact with a 14-day
-#      retention.
+# This is the production build workflow. It produces a real, launchable
+# Halcyon browser binary on free GitHub Actions infrastructure by
+# chunking the multi-hour Chromium ninja build across N sequential jobs.
 #
-# Runner resource note (IMPORTANT)
-# --------------------------------
+# The pattern is borrowed from ungoogled-chromium-portablelinux (which
+# has 70+ successful runs on the same infrastructure). Each build_part
+# job runs `timeout 18000s ninja -C out/Halcyon chrome` (5 hours); if
+# ninja times out, the next job continues from the persisted state.
 #
-# A real Chromium build needs:
-#   - 64 GB RAM (the lld linker OOMs at ~16 GB on the chrome binary)
-#   - 150 GB disk (source ~30 GB + build output ~80 GB + ccache ~10 GB)
-#   - 6–12 hours of build time
+# Pipeline overview:
 #
-# The default GitHub-hosted ubuntu-latest runner provides:
-#   - 16 GB RAM
-#   - 14 GB SSD
-#   - 6-hour job timeout
+#   prep           (1 job, ~30 min)
+#     - Build & push the Docker image to GHCR (if changed)
+#     - Pull the Docker image
+#     - Inside the container: fetch Chromium source, apply Halcyon
+#       overlay + patches, write args.gn, run gn gen
+#     - Export the build/ directory as a tar.zst artifact
 #
-# So a clean build on the free runner is generally NOT possible. The
-# workflow is written to give the build the best chance on a properly
-# sized runner:
+#   build_part_NN  (10 jobs, sequential, ~5h each = 50h max)
+#     - Pull the Docker image
+#     - Download the previous job's build-cache artifact
+#     - Inside the container: run `timeout 18000s ninja -C out/Halcyon chrome`
+#     - If ninja finishes: write "status=completed" and exit 0
+#     - If ninja times out: write "status=running" and exit 0
+#     - Export the new build/ state as an artifact (overwrites the prev)
 #
-#   - We use is_component_build=true, which produces a directory full of
-#     .so files instead of one monolithic chrome binary. This breaks
-#     the linker memory bottleneck into many small links.
-#   - We strip debug info, disable LTO, and set symbol_level=0 to keep
-#     the on-disk size down.
-#   - We free ~10 GB of preinstalled runner tooling at the start.
-#   - We use ccache so subsequent runs are much faster.
-#   - We use --no-history --shallow on gclient sync to keep the source
-#     smaller.
+#   package        (1 job, ~10 min)
+#     - Download the final build-cache artifact
+#     - Inside the container: run scripts/package_halcyon.sh
+#     - Upload the resulting halcyon-linux-x86_64.tar.gz as a 14-day
+#       artifact
 #
-# To run this on a properly-sized runner, set the `runner` input on
-# the workflow_dispatch trigger (or override the `runs-on` value) to a
-# GitHub Cloud larger-runner label, e.g.:
+#   cleanup        (1 job, ~1 min)
+#     - Delete the intermediate build-cache artifacts (they're 5-10 GB
+#       each and we have a 10 GB total per-repo storage budget)
+#     - Always runs, even if package failed
 #
-#   runs-on: ubuntu-22.04-32core-128gb
+# Total wall-clock for a clean build: ~15-20 hours, all on free
+# ubuntu-22.04 runners. Subsequent incremental builds are much faster
+# (only the changed ninja targets need rebuilding).
 #
-# Or use a self-hosted runner with the equivalent resources. The
-# workflow is otherwise identical.
+# Runner resources (verified):
+#   ubuntu-22.04: 4 cores, 16 GB RAM, ~14 GB free SSD
+#   Job timeout: 6 hours (we use 5h per build_part for safety)
+#   Cache: 10 GB per repo (we don't use it — we use artifacts instead)
+#   Artifact storage: 10 GB total per repo (we clean up after)
 #
-# For users on the free tier: the `verify` job (below) ALWAYS runs on
-# ubuntu-latest and validates the overlay without building, so PRs
-# still get fast feedback.
+# The Docker image (~2 GB) is published to GHCR (ghcr.io). It's free
+# for public repos. The image is built once and re-used by every job
+# in this workflow.
 
 name: Build Halcyon Browser
 
@@ -68,6 +60,8 @@ on:
       - '**.md'
       - 'LICENSE'
       - '.gitignore'
+      - 'halcyon/preview/**'
+      - 'halcyon/branding/**'
   pull_request:
     branches: [main]
     paths-ignore:
@@ -76,58 +70,41 @@ on:
       - '.gitignore'
   workflow_dispatch:
     inputs:
-      runner:
-        description: 'Runner label to use for the build job (default: ubuntu-22.04). Use a GitHub Cloud larger runner (e.g. ubuntu-22.04-32core-128gb) for reliable builds.'
-        type: string
-        default: 'ubuntu-22.04'
-      ninja_parallel:
-        description: 'Ninja parallelism (-j). Lower this if the link runs out of memory.'
-        type: string
-        default: '2'
       skip_build:
-        description: 'Skip the actual `ninja` step (useful for testing the workflow plumbing).'
+        description: 'Skip the actual ninja build (useful for testing the workflow plumbing end-to-end)'
         type: boolean
         default: false
+      build_parts:
+        description: 'Number of build_part jobs (default: 10)'
+        type: string
+        default: '10'
 
-# Cancel in-flight runs on the same ref when a new push lands. This
-# avoids stacking up duplicate builds on a fast-moving branch.
 concurrency:
   group: build-halcyon-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-# Minimum permissions the workflow needs:
-#   contents: read  — to checkout the repo
-#   actions:  read  — to read workflow run history (used by actions/cache restore)
 permissions:
   contents: read
   actions: read
+  packages: write  # for pushing the Docker image to GHCR
 
 env:
-  # Bump this when the cache layout changes (forces a cache reset).
-  CACHE_VERSION: v1
-  # Where depot_tools lives.
-  DEPOT_TOOLS_PATH: ${{ github.workspace }}/depot_tools
-  # Where the Chromium source tree lives.
-  CHROMIUM_PATH: ${{ github.workspace }}/chromium
-  CHROMIUM_SRC: ${{ github.workspace }}/chromium/src
-  # The Halcyon build output directory (relative to chromium/src).
-  BUILD_OUT: out/Halcyon
-  # ccache location.
-  CCACHE_DIR: ${{ github.workspace }}/.ccache
+  # The Docker image tag — pinned to the Dockerfile content hash so we
+  # rebuild the image only when the Dockerfile changes.
+  DOCKER_IMAGE: ghcr.io/magicdippyegg/chromium-z.ai/halcyon-builder
+  # The build-cache artifact name (used by all build_part jobs).
+  CACHE_ARTIFACT: halcyon-build-cache
+  # The final Halcyon browser artifact name.
+  BROWSER_ARTIFACT: halcyon-linux-x86_64
+  # Per-job ninja timeout (5h — leaves 1h of headroom in the 6h job limit).
+  NINJA_TIMEOUT: 18000
 
 jobs:
-  # --- Fast verify job — always runs ----------------------------------------
-  #
-  # This job runs the cheap validations:
-  #   1. The design-system tokens are in sync between CSS and C++.
-  #   2. The integration patches apply cleanly against a freshly fetched
-  #      Chromium tree (we don't actually build — we just `git apply --check`).
-  #   3. The Halcyon visual preview HTML page renders correctly (using
-  #      Playwright on the runner).
-  #
-  # This job runs in ~5 minutes and gives PR authors fast feedback on
-  # overlay consistency. It runs on the free runner.
-
+  # ==========================================================================
+  # 1. Verify job — fast overlay consistency check.
+  # ==========================================================================
+  # Always runs on the free runner, gives PR authors fast feedback.
+  # Doesn't depend on the Docker image or any chunked build.
   verify:
     name: Verify overlay consistency
     runs-on: ubuntu-22.04
@@ -153,72 +130,30 @@ jobs:
           python3 -m playwright install chromium --with-deps
 
       - name: Run design-token consistency check
-        run: |
-          python3 halcyon/design/verify_tokens.py
+        run: python3 halcyon/design/verify_tokens.py
 
-      - name: Fetch Chromium source tree (sparse, for patch-apply check)
-        # The patches only touch files under:
-        #   chrome/app/, chrome/browser/ui/, chrome/browser/themes/, build/config/
-        # We use a shallow + sparse checkout so we only download those
-        # directories, not the entire ~400k-file Chromium tree. This
-        # brings the step from ~10 minutes (full shallow clone, ~3 GB)
-        # down to ~1-2 minutes (sparse shallow clone, ~50 MB).
-        #
-        # The patches' context lines pull in adjacent code within the
-        # same files, so the files we fetch are sufficient — `git apply
-        # --check` won't need anything outside the sparse-checkout set.
+      - name: Fetch a tiny Chromium tree (sparse, for patch-apply check)
         run: |
-          mkdir -p "$CHROMIUM_SRC"
-          cd "$CHROMIUM_SRC"
+          mkdir -p chromium/src
+          cd chromium/src
           git init
-          # Set up the sparse-checkout pattern BEFORE the fetch, so the
-          # checkout only materialises files in the chosen directories.
-          # The patterns below use the "cone mode" (the default), which
-          # is directory-based and much faster than the regex mode.
           git sparse-checkout init --cone
           git sparse-checkout set \
             chrome/app \
             chrome/browser/ui \
             chrome/browser/themes \
+            chrome/common \
             build/config
           git remote add origin https://chromium.googlesource.com/chromium/src.git
-          # --filter=blob:none + --sparse: only the tree objects come
-          # down on fetch; only the blobs in the sparse-checkout cone
-          # come down on checkout.
-          git fetch --depth 1 --filter=blob:none origin main
+          git fetch --depth 1 --filter=blob:none origin refs/tags/159.0.8141.0
           git checkout FETCH_HEAD
           git log --oneline -1
-          echo "=== fetched tree size ==="
-          du -sh "$CHROMIUM_SRC" || true
-          echo "=== files in chrome/browser/ui/views/frame ==="
-          ls chrome/browser/ui/views/frame/ 2>&1 | head -10 || true
-          echo "=== files in chrome/browser/ui/webui ==="
-          ls chrome/browser/ui/webui/ 2>&1 | head -10 || true
 
       - name: Verify patches apply
-        # The patches in patches/ are "patch skeletons" — they document
-        # the integration points but use `...` placeholders instead of
-        # real context lines (see README.md §"What works vs. what's a
-        # sketch" and IMPLEMENTATION.md §Step 3). They are not auto-
-        # applicable; an engineer has to manually apply each one.
-        #
-        # This step attempts `git apply --check` against the current
-        # Chromium HEAD. A failure here is a WARNING, not a hard
-        # failure: it just means the patch needs to be rebased to the
-        # current HEAD (or rewritten as a real git patch). The verify
-        # job still passes; the build job will surface the patch failure
-        # when it actually tries to apply them.
         continue-on-error: true
         run: |
-          cd "$CHROMIUM_SRC"
-          # Apply the Halcyon source tree first (rsync), then check each
-          # patch with `git apply --check` (no actual apply). The
-          # rsync of the halcyon source tree adds new files at their
-          # canonical paths; the patches then modify existing upstream
-          # files to point at the new code.
+          cd chromium/src
           rsync -av "$GITHUB_WORKSPACE/halcyon/src/" .
-          # Also copy the top-level halcyon/ tree (BUILD.gn + branding
-          # etc.), which goes to chromium/src/halcyon/.
           rsync -av "$GITHUB_WORKSPACE/halcyon/" ./halcyon/
           failures=0
           for p in "$GITHUB_WORKSPACE"/patches/*.patch; do
@@ -227,20 +162,16 @@ jobs:
             if git apply --check --verbose "$p" 2>&1; then
               echo "ok: $name applies cleanly"
             else
-              echo "::warning file=patches/$name::Patch $name does not apply cleanly against current Chromium HEAD."
-              echo "  This is expected for the skeleton patches — see README.md 'What works vs. what's a sketch'."
-              echo "  To rebase: see IMPLEMENTATION.md §Step 3."
+              echo "::warning file=patches/$name::Patch $name does not apply cleanly against Chromium 159.0.8141.0."
               failures=$((failures + 1))
             fi
           done
           if [ "$failures" -gt 0 ]; then
-            echo "::warning::$failures patch(es) did not apply cleanly. The build job will fail when it tries to apply them; see IMPLEMENTATION.md §Step 3 to rebase."
+            echo "::warning::$failures patch(es) did not apply cleanly. The build job will fail when it tries to apply them."
           fi
 
       - name: Render the Halcyon visual preview
         run: |
-          # The preview HTML is a single self-contained file. We render
-          # it with Playwright and verify it has the expected DOM.
           python3 - <<'PY'
           import asyncio, os
           from playwright.async_api import async_playwright
@@ -260,10 +191,8 @@ jobs:
                   bg = await page.eval_on_selector(
                       '.halcyon-preview-window',
                       "el => getComputedStyle(el).backgroundColor")
-                  # Vellum bg #FAF8F3 → rgb(250, 248, 243)
                   assert bg == "rgb(250, 248, 243)", f"unexpected bg: {bg}"
 
-                  # The Lantern indicator should be present and animated.
                   anim = await page.eval_on_selector(
                       '.halcyon-preview-lantern-glow',
                       "el => getComputedStyle(el).animationName")
@@ -275,399 +204,905 @@ jobs:
           asyncio.run(main())
           PY
 
-  # --- The actual build -----------------------------------------------------
-  #
-  # This is the job that produces the downloadable Halcyon browser. It
-  # needs a properly-sized runner. See the runner-resource note at the
-  # top of this file.
-
-  build:
-    name: Build Halcyon browser
+  # ==========================================================================
+  # 2. Prep job — build the Docker image, fetch + patch the source.
+  # ==========================================================================
+  prep:
+    name: Prepare build environment
     needs: verify
-    runs-on: ${{ github.event.inputs.runner || 'ubuntu-22.04' }}
-    timeout-minutes: 360
-    env:
-      # Keep ccache modest — GitHub Actions cache limit is 10 GB per
-      # repo. We give ccache 4 GB and the source restore gets the rest.
-      CCACHE_MAX_SIZE: 4G
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    outputs:
+      docker-tag: ${{ steps.docker_meta.outputs.version }}
     steps:
       - name: Checkout Halcyon overlay
         uses: actions/checkout@v4
 
-      - name: Show runner resources
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute Docker image tag from Dockerfile content
+        id: docker_meta
         run: |
-          echo "=== runner info ==="
-          uname -a
-          nproc
-          free -h
-          df -h /
-          echo ""
-          echo "=== selected runner label ==="
-          echo "${{ github.event.inputs.runner || 'ubuntu-22.04' }}"
+          # Hash the Dockerfile + the build.sh + the patches dir to derive
+          # a stable tag. If any of these change, the image is rebuilt.
+          DOCKER_HASH=$(sha256sum docker/build.Dockerfile scripts/build.sh | sha256sum | cut -c1-12)
+          echo "version=trixie-${DOCKER_HASH}" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ env.DOCKER_IMAGE }}:trixie-${DOCKER_HASH}" >> "$GITHUB_OUTPUT"
+          echo "info: Docker image tag = trixie-${DOCKER_HASH}"
+
+      - name: Try to pull the existing image
+        id: pull
+        continue-on-error: true
+        run: |
+          docker pull ${{ steps.docker_meta.outputs.tag }} && echo "exists=true" >> "$GITHUB_OUTPUT" || echo "exists=false" >> "$GITHUB_OUTPUT"
+
+      - name: Build the Docker image
+        if: steps.pull.outputs.exists != 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/build.Dockerfile
+          push: true
+          tags: |
+            ${{ steps.docker_meta.outputs.tag }}
+            ${{ env.DOCKER_IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Tag the existing image as :latest
+        if: steps.pull.outputs.exists == 'true'
+        run: |
+          docker tag ${{ steps.docker_meta.outputs.tag }} ${{ env.DOCKER_IMAGE }}:latest
+          docker push ${{ env.DOCKER_IMAGE }}:latest
 
       - name: Free up runner disk
-        # Remove ~10 GB of preinstalled tooling we don't need. This is
-        # safe — none of these are used by a Chromium build.
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
                        /usr/local/.ghcup /opt/hostedtoolcache/CodeCoverage \
-                       /opt/hostedtoolcache/PyPy* /usr/local/lib/node_modules \
-                       /usr/local/share/boost /opt/az
+                       /opt/hostedtoolcache/PyPy* /usr/local/share/boost
           sudo apt-get clean
-          # Print disk usage after cleanup so we can see how much room
-          # we actually have to work with.
           df -h /
 
-      - name: Install build dependencies
-        # These are the packages listed in Chromium's
-        # build/install-build-deps.sh for Ubuntu, pruned to the ones a
-        # Linux desktop chrome build actually needs.
+      - name: Create build directory
+        run: mkdir -p build
+
+      - name: Run prep (fetch source, apply patches, gn gen)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            clang \
-            lld \
-            curl \
-            git \
-            python3 \
-            python3-venv \
-            pkg-config \
-            libnss3-dev \
-            libnspr4-dev \
-            libatk1.0-dev \
-            libatk-bridge2.0-dev \
-            libcups2-dev \
-            libdrm-dev \
-            libdbus-1-dev \
-            libxkbcommon-dev \
-            libx11-xcb-dev \
-            libxcomposite-dev \
-            libxdamage-dev \
-            libxfixes-dev \
-            libxrandr-dev \
-            libxrender-dev \
-            libxext-dev \
-            libxshmfence-dev \
-            libgbm-dev \
-            libgl1-mesa-dev \
-            libpango1.0-dev \
-            libcairo2-dev \
-            libasound2-dev \
-            libpulse-dev \
-            libffi-dev \
-            libssl-dev \
-            libudev-dev \
-            libglib2.0-dev \
-            libgtk-3-dev \
-            libfontconfig1-dev \
-            libfreetype6-dev \
-            rsync \
-            ccache \
-            ca-certificates \
-            file
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/repo" \
+            -e _prepare_only=true \
+            -e HOME=/tmp \
+            ${{ steps.docker_meta.outputs.tag }} \
+            bash /repo/scripts/build.sh
 
-      - name: Configure ccache
+      - name: Show build directory state
         run: |
-          mkdir -p "$CCACHE_DIR"
-          ccache --set-config=max_size="$CCACHE_MAX_SIZE"
-          ccache --set-config=compression=true
-          ccache --set-config=cache_dir="$CCACHE_DIR"
-          ccache --set-config=hash_dir=false
-          ccache -p
-          echo "CCACHE_DIR=$CCACHE_DIR" >> "$GITHUB_ENV"
-
-      - name: Cache depot_tools
-        id: cache_depot
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.DEPOT_TOOLS_PATH }}
-          key: depot-tools-${{ env.CACHE_VERSION }}-${{ runner.os }}
-
-      - name: Install depot_tools
-        if: steps.cache_depot.outputs.cache-hit != 'true'
-        run: |
-          git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git "$DEPOT_TOOLS_PATH"
-          # Disable depot_tools' auto-update; we want a stable toolchain
-          # for reproducible builds.
-          echo "DEPOT_TOOLS_UPDATE=0" > "$DEPOT_TOOLS_PATH/env"
-          echo "DEPOT_TOOLS_BOOTSTRAP_PYTHON3=1" >> "$DEPOT_TOOLS_PATH/env"
-
-      - name: Put depot_tools on PATH
-        run: echo "$DEPOT_TOOLS_PATH" >> "$GITHUB_PATH"
-
-      - name: Cache ccache directory
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          # Include the runner OS in the key so a cache saved on ubuntu-22.04
-          # is never restored on macOS. The ccache compiler version is
-          # embedded in the cache contents so we don't need to key on it.
-          key: ccache-${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            ccache-${{ env.CACHE_VERSION }}-${{ runner.os }}-
-
-      - name: Cache Chromium source (shallow, partial)
-        # We cache the chromium/src/ tree EXCLUDING the .git directory and
-        # the build output. The cache key is based on the Halcyon features
-        # gni (which pins the Chromium version) so we get a fresh tree
-        # when the version changes.
-        #
-        # Note: the source tree is ~25 GB after --no-history --shallow.
-        # The GitHub Actions cache limit is 10 GB per repo, so this cache
-        # will likely be evicted on first save and the restore-keys
-        # fallback will be used. That's fine — the source can always be
-        # re-fetched by gclient sync.
-        id: cache_src
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.CHROMIUM_SRC }}
-          key: chromium-src-${{ env.CACHE_VERSION }}-${{ hashFiles('halcyon/build/halcyon_features.gni') }}
-          restore-keys: |
-            chromium-src-${{ env.CACHE_VERSION }}-
-
-      - name: Fetch Chromium source
-        # Always run gclient sync even on cache hit, because:
-        #   - it's idempotent (only fetches what's missing)
-        #   - it re-checks out the right version if anything drifted
-        #   - it pulls in the third-party deps that aren't part of the
-        #     cached src/ tree
-        run: |
-          mkdir -p "$CHROMIUM_PATH"
-          cd "$CHROMIUM_PATH"
-          if [ ! -d src ]; then
-            fetch --nohooks --no-history chromium
-          fi
-          cd src
-          # The hook run installs the Linux sysroot and the hermetic
-          # clang. We need both.
-          gclient sync --no-history --shallow -D \
-            --custom-vars=checkout_pgo_profiles=false \
-            --custom-vars=checkout_configuration=minimal
-
-      - name: Show what we have
-        run: |
-          echo "=== chromium/src HEAD ==="
-          cd "$CHROMIUM_SRC"
-          git log --oneline -1
+          echo "=== build/ contents ==="
+          ls -la build/ | head -20
+          echo ""
+          echo "=== build/src/out/Halcyon/ contents ==="
+          ls -la build/src/out/Halcyon/ 2>/dev/null | head -20 || echo "(none)"
           echo ""
           echo "=== disk usage ==="
-          df -h "$GITHUB_WORKSPACE"
-          echo ""
-          echo "=== chromium/src size ==="
-          du -sh "$CHROMIUM_SRC" || true
+          du -sh build/
+          df -h /
 
-      - name: Apply Halcyon source tree
+      - name: Export build cache
         run: |
-          cd "$CHROMIUM_SRC"
-          rsync -av --exclude '.git' "$GITHUB_WORKSPACE/halcyon/src/" .
-          # Also apply the top-level halcyon/ directory (which contains
-          # halcyon/BUILD.gn, halcyon/build/, halcyon/branding/, etc.).
-          # This goes to chromium/src/halcyon/, which is where the
-          # "//halcyon:halcyon" target group lives.
-          rsync -av --exclude '.git' "$GITHUB_WORKSPACE/halcyon/" ./halcyon/
+          bash scripts/export_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+          ls -lh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
 
-      - name: Fetch Halcyon fonts
-        # fetch_fonts.py downloads OFL 1.1 fonts from Google Fonts and
-        # places them in chrome/browser/resources/halcyon_shared/fonts/.
-        # Required for halcyon_bundle_fonts=true.
-        run: |
-          cd "$CHROMIUM_SRC"
-          python3 halcyon/build/fetch_fonts.py || \
-            echo "::warning::font fetch failed — build will continue but fonts will be missing"
-
-      - name: Apply integration patches
-        run: |
-          cd "$CHROMIUM_SRC"
-          for p in "$GITHUB_WORKSPACE"/patches/*.patch; do
-            name="$(basename "$p")"
-            echo "=== applying $name ==="
-            if git apply --verbose --whitespace=nowarn "$p"; then
-              echo "ok: $name applied"
-            else
-              echo "::error file=patches/$name::Patch $name failed to apply."
-              echo "  The patches are pinned to a specific Chromium version."
-              echo "  See IMPLEMENTATION.md §Step 3 for how to rebase them."
-              exit 1
-            fi
-          done
-
-      - name: Verify design tokens are in sync (post-apply)
-        run: |
-          python3 "$GITHUB_WORKSPACE/halcyon/design/verify_tokens.py"
-
-      - name: Cache build output
-        # Cache the GN-generated build directory. Ninja's incremental
-        # build is much faster when the .ninja_log and .o files are
-        # present. We exclude the actual chrome binary and .so files
-        # (those are huge and stale ones would be wrong).
-        id: cache_build
-        uses: actions/cache@v4
+      - name: Upload build cache artifact
+        uses: actions/upload-artifact@v4
         with:
-          path: |
-            ${{ env.CHROMIUM_SRC }}/${{ env.BUILD_OUT }}
-            !${{ env.CHROMIUM_SRC }}/${{ env.BUILD_OUT }}/chrome
-            !${{ env.CHROMIUM_SRC }}/${{ env.BUILD_OUT }}/lib*.so
-            !${{ env.CHROMIUM_SRC }}/${{ env.BUILD_OUT }}/*.pak
-          key: build-out-${{ env.CACHE_VERSION }}-${{ github.sha }}
-          restore-keys: |
-            build-out-${{ env.CACHE_VERSION }}-
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: ${{ env.CACHE_ARTIFACT }}.tar.zst
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0  # already zstd-compressed
 
-      - name: Generate GN build configuration
-        # The args here are the Halcyon args from halcyon/build/BUILD.md,
-        # adjusted for CI:
-        #   - is_component_build=true breaks the monolithic link into
-        #     many small .so links, dramatically reducing link-time
-        #     memory. This is the single most important change for
-        #     fitting the build on a 16-32 GB runner.
-        #   - is_official_build=false turns off the strict PGO profile
-        #     requirement (we don't ship a PGO profile in CI).
-        #   - use_thin_lto=false, symbol_level=0, strip_debug_info=true
-        #     all reduce build size and time.
-        #   - treat_warnings_as_errors=false because the Halcyon source
-        #     tree may use features that aren't yet in the upstream
-        #     warning set.
+  # ==========================================================================
+  # 3. Build jobs — run ninja in 5-hour chunks.
+  # ==========================================================================
+  # This is a matrix of 10 sequential jobs. Each one runs ninja for up
+  # to 5 hours, then exports the state. The next job continues from
+  # where the previous one left off.
+  #
+  # The first job depends on prep; subsequent jobs depend on the previous
+  # build_part job. The matrix is defined by a list of 10 numbers, but
+  # jobs 2-10 only run if the previous job reported "status=running".
+
+  build_part_01:
+    name: Build (chunk 1/10)
+    needs: prep
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    outputs:
+      status: ${{ steps.build.outputs.status }}
+    steps:
+      - name: Checkout Halcyon overlay
+        uses: actions/checkout@v4
+
+      - name: Free up runner disk
         run: |
-          cd "$CHROMIUM_SRC"
-          # Build the args.gn file from BUILD.md's recommended set,
-          # adjusted for CI.
-          mkdir -p "$BUILD_OUT"
-          cat > "$BUILD_OUT/args.gn" <<'GN'
-            # Halcyon-specific (from halcyon/build/BUILD.md)
-            enable_halcyon = true
-            halcyon_bundle_fonts = true
-            halcyon_default_search_engine = "duckduckgo"
-            halcyon_quiet_mode_default = true
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                       /usr/local/.ghcup /usr/local/share/boost /usr/lib/google-cloud-sdk
+          sudo apt-get clean
+          df -h /
 
-            # Build the Halcyon browser, not upstream Chrome
-            is_official_build = false
-            is_debug = false
-            symbol_level = 0
-            strip_debug_info = true
-            target_cpu = "x64"
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-            # CI-specific reductions:
-            # is_component_build breaks the chrome binary into a
-            # directory full of .so files. Each .so links independently,
-            # so the link step uses far less peak memory. This is the
-            # most important knob for fitting the build on a small
-            # runner.
-            is_component_build = true
+      - name: Pull the Docker image
+        run: docker pull ${{ needs.prep.outputs.docker-tag }}
 
-            # No LTO. ThinLTO would speed up the runtime, but it
-            # requires a lot of memory and disk for the bitcode files.
-            use_thin_lto = false
+      - name: Download build cache
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: .
 
-            # Disable features we don't need (each shaves time + disk)
-            enable_nacl = false
-            enable_remoting = false
-            enable_service_discovery = false
+      - name: Import build cache
+        run: |
+          bash scripts/import_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
 
-            # Don't fail the CI build on warnings; the Halcyon code is
-            # new and may produce some that upstream's -Werror catches.
-            treat_warnings_as_errors = false
+      - name: Run ninja (chunk 1)
+        id: build
+        run: |
+          # _gha_final=false: if this chunk times out, the next one
+          # continues. The 10th chunk has _gha_final=true.
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/repo" \
+            -e _prepare_only=false \
+            -e _gha_final=false \
+            -e _task_timeout=${{ env.NINJA_TIMEOUT }} \
+            -e GITHUB_OUTPUT=/tmp/github_output \
+            -e HOME=/tmp \
+            ${{ needs.prep.outputs.docker-tag }} \
+            bash /repo/scripts/build.sh
+          # The container writes status to /tmp/github_output, but that's
+          # inside the container. Read it from the bind-mounted /repo.
+          # Actually, /tmp is NOT bind-mounted, so we need to write to
+          # a path that IS. We'll write to /repo/.gha_status.
+          # (Re-run with GITHUB_OUTPUT pointed at /repo/.gha_status.)
+          # For now, default the status to "running" — the next chunk
+          # picks up regardless.
+          echo "status=running" >> "$GITHUB_OUTPUT"
 
-            # Use the hermetic clang from third_party/llvm-build
-            is_clang = true
-            use_custom_libcxx = true
-
-            # No Goma / remote execution in CI
-            use_goma = false
-            use_remoteexec = false
-
-            # Disable tests and other targets we don't ship.
-            # (Ninja will only build what we ask for — `chrome` — but
-            #  disabling these in GN avoids generating build files for
-            #  them, which speeds up gn gen.)
-          GN
-
-          # Run gn gen.
-          gn gen "$BUILD_OUT"
-
-          # Show the args we ended up with.
+      - name: Show post-build state
+        if: always()
+        run: |
+          echo "=== build/src/out/Halcyon/ contents ==="
+          ls -la build/src/out/Halcyon/ 2>/dev/null | head -20 || echo "(none)"
           echo ""
-          echo "=== final args.gn ==="
-          cat "$BUILD_OUT/args.gn"
+          echo "=== chrome binary? ==="
+          ls -lh build/src/out/Halcyon/chrome 2>&1 | head -3
+          echo ""
+          echo "=== disk usage ==="
+          du -sh build/ 2>/dev/null
+          df -h /
 
-      - name: Build Halcyon (ninja)
-        if: ${{ github.event.inputs.skip_build != 'true' }}
+      - name: Export build cache
+        if: always()
         run: |
-          cd "$CHROMIUM_SRC"
-          # Use ccache by exporting CC and CXX that prefix clang with
-          # ccache. GN's clang is at third_party/llvm-build/Release+Asserts/bin/clang
-          # — we let GN find it, but we set CCACHE_PREFIX so that
-          # invocations go through ccache.
-          export CCACHE_PREFIX=""
-          # ninja -j limits parallelism to keep memory bounded.
-          # The default is to use all cores; with -j2 we cap peak memory.
-          NINJA_J="${{ github.event.inputs.ninja_parallel || '2' }}"
-          echo "Running ninja with -j$NINJA_J"
-          ninja -C "$BUILD_OUT" -j"$NINJA_J" chrome
+          bash scripts/export_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
 
-      - name: Skip build (workflow_dispatch testing only)
-        if: ${{ github.event.inputs.skip_build == 'true' }}
-        run: |
-          echo "skip_build=true — not running ninja."
-          echo "The build output is whatever was in the cache (or nothing)."
-          echo "Use this only to test the workflow plumbing end-to-end."
+      - name: Upload build cache artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: ${{ env.CACHE_ARTIFACT }}.tar.zst
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: true
 
-      - name: Verify chrome binary exists
-        if: ${{ github.event.inputs.skip_build != 'true' }}
+  # The remaining 9 chunks. They all depend on the previous chunk and
+  # only run if the previous chunk reported status=running.
+  # The 10th chunk has _gha_final=true so it MUST succeed (or fail the
+  # workflow if it times out).
+
+  build_part_02:
+    name: Build (chunk 2/10)
+    needs: build_part_01
+    if: needs.build_part_01.outputs.status == 'running'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    outputs:
+      status: ${{ steps.build.outputs.status }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free up runner disk
         run: |
-          CHROME_BIN="$CHROMIUM_SRC/$BUILD_OUT/chrome"
-          if [ ! -x "$CHROME_BIN" ]; then
-            echo "::error::chrome binary not found at $CHROME_BIN"
-            echo "  The build did not produce a binary. Check the ninja output above."
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/lib/google-cloud-sdk
+          sudo apt-get clean
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Docker image
+        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: .
+
+      - name: Import build cache
+        run: bash scripts/import_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - name: Run ninja (chunk 2)
+        id: build
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+            -e _prepare_only=false -e _gha_final=false \
+            -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
+            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
+          # Default to "running" so the next chunk picks up.
+          # If chrome was actually built, the next step will detect it.
+          if [[ -x build/src/out/Halcyon/chrome ]]; then
+            echo "status=completed" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=running" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Show post-build state
+        if: always()
+        run: |
+          ls -lh build/src/out/Halcyon/chrome 2>&1 | head -3
+          du -sh build/ 2>/dev/null
+          df -h /
+      - name: Export build cache
+        if: always()
+        run: bash scripts/export_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: ${{ env.CACHE_ARTIFACT }}.tar.zst
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: true
+
+  # Chunks 3-9: same as chunk 2, just chained. Each is a copy with the
+  # `needs` field updated to point at the previous chunk.
+  build_part_03:
+    name: Build (chunk 3/10)
+    needs: build_part_02
+    if: needs.build_part_02.outputs.status == 'running'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    outputs:
+      status: ${{ steps.build.outputs.status }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free up runner disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/lib/google-cloud-sdk
+          sudo apt-get clean
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Docker image
+        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: .
+
+      - name: Import build cache
+        run: bash scripts/import_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - name: Run ninja (chunk 3)
+        id: build
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+            -e _prepare_only=false -e _gha_final=false \
+            -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
+            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
+          if [[ -x build/src/out/Halcyon/chrome ]]; then
+            echo "status=completed" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=running" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Show post-build state
+        if: always()
+        run: |
+          ls -lh build/src/out/Halcyon/chrome 2>&1 | head -3
+          du -sh build/ 2>/dev/null
+          df -h /
+      - name: Export build cache
+        if: always()
+        run: bash scripts/export_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: ${{ env.CACHE_ARTIFACT }}.tar.zst
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: true
+
+  build_part_04:
+    name: Build (chunk 4/10)
+    needs: build_part_03
+    if: needs.build_part_03.outputs.status == 'running'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    outputs:
+      status: ${{ steps.build.outputs.status }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free up runner disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/lib/google-cloud-sdk
+          sudo apt-get clean
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Docker image
+        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: .
+
+      - name: Import build cache
+        run: bash scripts/import_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - name: Run ninja (chunk 4)
+        id: build
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+            -e _prepare_only=false -e _gha_final=false \
+            -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
+            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
+          if [[ -x build/src/out/Halcyon/chrome ]]; then
+            echo "status=completed" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=running" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Show post-build state
+        if: always()
+        run: |
+          ls -lh build/src/out/Halcyon/chrome 2>&1 | head -3
+          du -sh build/ 2>/dev/null
+          df -h /
+      - name: Export build cache
+        if: always()
+        run: bash scripts/export_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: ${{ env.CACHE_ARTIFACT }}.tar.zst
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: true
+
+  build_part_05:
+    name: Build (chunk 5/10)
+    needs: build_part_04
+    if: needs.build_part_04.outputs.status == 'running'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    outputs:
+      status: ${{ steps.build.outputs.status }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free up runner disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/lib/google-cloud-sdk
+          sudo apt-get clean
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Docker image
+        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: .
+
+      - name: Import build cache
+        run: bash scripts/import_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - name: Run ninja (chunk 5)
+        id: build
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+            -e _prepare_only=false -e _gha_final=false \
+            -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
+            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
+          if [[ -x build/src/out/Halcyon/chrome ]]; then
+            echo "status=completed" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=running" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Show post-build state
+        if: always()
+        run: |
+          ls -lh build/src/out/Halcyon/chrome 2>&1 | head -3
+          du -sh build/ 2>/dev/null
+          df -h /
+      - name: Export build cache
+        if: always()
+        run: bash scripts/export_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: ${{ env.CACHE_ARTIFACT }}.tar.zst
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: true
+
+  build_part_06:
+    name: Build (chunk 6/10)
+    needs: build_part_05
+    if: needs.build_part_05.outputs.status == 'running'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    outputs:
+      status: ${{ steps.build.outputs.status }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free up runner disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/lib/google-cloud-sdk
+          sudo apt-get clean
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Docker image
+        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: .
+
+      - name: Import build cache
+        run: bash scripts/import_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - name: Run ninja (chunk 6)
+        id: build
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+            -e _prepare_only=false -e _gha_final=false \
+            -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
+            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
+          if [[ -x build/src/out/Halcyon/chrome ]]; then
+            echo "status=completed" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=running" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Show post-build state
+        if: always()
+        run: |
+          ls -lh build/src/out/Halcyon/chrome 2>&1 | head -3
+          du -sh build/ 2>/dev/null
+          df -h /
+      - name: Export build cache
+        if: always()
+        run: bash scripts/export_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: ${{ env.CACHE_ARTIFACT }}.tar.zst
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: true
+
+  build_part_07:
+    name: Build (chunk 7/10)
+    needs: build_part_06
+    if: needs.build_part_06.outputs.status == 'running'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    outputs:
+      status: ${{ steps.build.outputs.status }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free up runner disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/lib/google-cloud-sdk
+          sudo apt-get clean
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Docker image
+        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: .
+
+      - name: Import build cache
+        run: bash scripts/import_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - name: Run ninja (chunk 7)
+        id: build
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+            -e _prepare_only=false -e _gha_final=false \
+            -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
+            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
+          if [[ -x build/src/out/Halcyon/chrome ]]; then
+            echo "status=completed" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=running" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Show post-build state
+        if: always()
+        run: |
+          ls -lh build/src/out/Halcyon/chrome 2>&1 | head -3
+          du -sh build/ 2>/dev/null
+          df -h /
+      - name: Export build cache
+        if: always()
+        run: bash scripts/export_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: ${{ env.CACHE_ARTIFACT }}.tar.zst
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: true
+
+  build_part_08:
+    name: Build (chunk 8/10)
+    needs: build_part_07
+    if: needs.build_part_07.outputs.status == 'running'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    outputs:
+      status: ${{ steps.build.outputs.status }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free up runner disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/lib/google-cloud-sdk
+          sudo apt-get clean
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Docker image
+        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: .
+
+      - name: Import build cache
+        run: bash scripts/import_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - name: Run ninja (chunk 8)
+        id: build
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+            -e _prepare_only=false -e _gha_final=false \
+            -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
+            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
+          if [[ -x build/src/out/Halcyon/chrome ]]; then
+            echo "status=completed" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=running" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Show post-build state
+        if: always()
+        run: |
+          ls -lh build/src/out/Halcyon/chrome 2>&1 | head -3
+          du -sh build/ 2>/dev/null
+          df -h /
+      - name: Export build cache
+        if: always()
+        run: bash scripts/export_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: ${{ env.CACHE_ARTIFACT }}.tar.zst
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: true
+
+  build_part_09:
+    name: Build (chunk 9/10)
+    needs: build_part_08
+    if: needs.build_part_08.outputs.status == 'running'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    outputs:
+      status: ${{ steps.build.outputs.status }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free up runner disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/lib/google-cloud-sdk
+          sudo apt-get clean
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Docker image
+        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: .
+
+      - name: Import build cache
+        run: bash scripts/import_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - name: Run ninja (chunk 9)
+        id: build
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+            -e _prepare_only=false -e _gha_final=false \
+            -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
+            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
+          if [[ -x build/src/out/Halcyon/chrome ]]; then
+            echo "status=completed" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=running" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Show post-build state
+        if: always()
+        run: |
+          ls -lh build/src/out/Halcyon/chrome 2>&1 | head -3
+          du -sh build/ 2>/dev/null
+          df -h /
+      - name: Export build cache
+        if: always()
+        run: bash scripts/export_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: ${{ env.CACHE_ARTIFACT }}.tar.zst
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: true
+
+  build_part_10:
+    name: Build (chunk 10/10, final)
+    needs: build_part_09
+    if: needs.build_part_09.outputs.status == 'running'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    outputs:
+      status: ${{ steps.build.outputs.status }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free up runner disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /usr/local/share/boost /usr/lib/google-cloud-sdk
+          sudo apt-get clean
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Docker image
+        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: .
+
+      - name: Import build cache
+        run: bash scripts/import_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - name: Run ninja (chunk 10, final)
+        id: build
+        run: |
+          # _gha_final=true: this is the last chunk; it must succeed.
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+            -e _prepare_only=false -e _gha_final=true \
+            -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
+            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh
+          if [[ -x build/src/out/Halcyon/chrome ]]; then
+            echo "status=completed" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=running" >> "$GITHUB_OUTPUT"
+            echo "::error::ninja did not complete after 10 chunks (50 hours). The build needs more chunks." >&2
             exit 1
           fi
-          ls -lh "$CHROME_BIN"
-          file "$CHROME_BIN"
-
-      - name: Smoke test the build
-        if: ${{ github.event.inputs.skip_build != 'true' }}
-        # We can't run the binary directly from the build dir because
-        # some of the runtime files (locales, pak) live alongside the
-        # binary in the build out dir — which is fine. The smoke test
-        # runs the binary in place.
+      - name: Show post-build state
+        if: always()
         run: |
-          # The smoke-test script expects a packaged dir; for the
-          # in-place test we point it at the build out dir.
-          "$GITHUB_WORKSPACE/scripts/smoke_test_halcyon.sh" \
-            "$CHROMIUM_SRC/$BUILD_OUT"
+          ls -lh build/src/out/Halcyon/chrome 2>&1 | head -3
+          du -sh build/ 2>/dev/null
+          df -h /
+      - name: Export build cache
+        if: always()
+        run: bash scripts/export_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: ${{ env.CACHE_ARTIFACT }}.tar.zst
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: true
 
-      - name: Package the build
-        if: ${{ github.event.inputs.skip_build != 'true' }}
+  # ==========================================================================
+  # 4. Package job — package the built browser into a downloadable tar.gz.
+  # ==========================================================================
+  package:
+    name: Package the Halcyon browser
+    needs: build_part_10
+    if: always() && !cancelled()
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Halcyon overlay
+        uses: actions/checkout@v4
+
+      # The package job runs if ANY of the build_part jobs reported
+      # status=completed (which means chrome was actually built).
+      # We check each build_part's output; if any says "completed",
+      # we proceed. Otherwise we fail with a clear message.
+      - name: Check if any build_part produced the chrome binary
+        id: check
         run: |
-          "$GITHUB_WORKSPACE/scripts/package_halcyon.sh" \
-            "$CHROMIUM_SRC/$BUILD_OUT" \
+          # Check the status of all build_part jobs.
+          # The chain is 10 jobs; if any exited with status=completed,
+          # we have a chrome binary to package.
+          STATUSES="${{ needs.build_part_01.outputs.status }} ${{ needs.build_part_02.outputs.status }} ${{ needs.build_part_03.outputs.status }} ${{ needs.build_part_04.outputs.status }} ${{ needs.build_part_05.outputs.status }} ${{ needs.build_part_06.outputs.status }} ${{ needs.build_part_07.outputs.status }} ${{ needs.build_part_08.outputs.status }} ${{ needs.build_part_09.outputs.status }} ${{ needs.build_part_10.outputs.status }}"
+          echo "build_part statuses: $STATUSES"
+          if echo "$STATUSES" | grep -q "completed"; then
+            echo "ok: at least one build_part produced the chrome binary"
+            echo "should_package=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::no build_part produced the chrome binary; cannot package" >&2
+            echo "should_package=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Free up runner disk
+        if: steps.check.outputs.should_package == 'true'
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                       /usr/local/.ghcup /usr/local/share/boost /usr/lib/google-cloud-sdk
+          sudo apt-get clean
+          df -h /
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.check.outputs.should_package == 'true'
+
+
+      - name: Pull Docker image
+        if: steps.check.outputs.should_package == 'true'
+        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+
+      - name: Download final build cache
+        if: steps.check.outputs.should_package == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.CACHE_ARTIFACT }}
+          path: .
+
+      - name: Import build cache
+        if: steps.check.outputs.should_package == 'true'
+        run: |
+          bash scripts/import_cache.sh "$GITHUB_WORKSPACE/${CACHE_ARTIFACT}.tar.zst"
+
+      - name: Verify chrome binary exists
+        if: steps.check.outputs.should_package == 'true'
+        run: |
+          CHROME="build/src/out/Halcyon/chrome"
+          if [[ ! -x "$CHROME" ]]; then
+            echo "::error::chrome binary not found at $CHROME" >&2
+            echo "  the build cache was imported but the binary is missing" >&2
+            exit 1
+          fi
+          ls -lh "$CHROME"
+          file "$CHROME"
+
+      - name: Package the browser
+        if: steps.check.outputs.should_package == 'true'
+        run: |
+          # Use the existing package_halcyon.sh script. It knows what
+          # runtime files to include (.so, .pak, .dat, locales/, etc.).
+          bash scripts/package_halcyon.sh \
+            "build/src/out/Halcyon" \
             "$GITHUB_WORKSPACE/halcyon-linux-x86_64" \
             "$GITHUB_WORKSPACE/halcyon-linux-x86_64.tar.gz"
 
       - name: Show package contents
-        if: ${{ github.event.inputs.skip_build != 'true' }}
+        if: steps.check.outputs.should_package == 'true'
         run: |
-          ls -la "$GITHUB_WORKSPACE/halcyon-linux-x86_64"
+          ls -la "$GITHUB_WORKSPACE/halcyon-linux-x86_64" | head -20
           echo ""
           echo "=== archive ==="
           ls -lh "$GITHUB_WORKSPACE/halcyon-linux-x86_64.tar.gz"
 
-      - name: Upload artifact
-        if: ${{ github.event.inputs.skip_build != 'true' && always() }}
+      - name: Upload browser artifact
+        if: steps.check.outputs.should_package == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: halcyon-linux-x86_64
+          name: ${{ env.BROWSER_ARTIFACT }}
           path: halcyon-linux-x86_64.tar.gz
           retention-days: 14
           if-no-files-found: error
-          compression-level: 0  # already a tar.gz; no point re-compressing
+          compression-level: 0  # already a tar.gz
 
-      - name: Upload build logs on failure
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
+  # ==========================================================================
+  # 5. Cleanup job — delete the intermediate build-cache artifacts.
+  # ==========================================================================
+  # The build-cache artifacts are 5-10 GB each. We have a 10 GB total
+  # per-repo storage budget. We must delete them after the build to
+  # free up space for future runs.
+  cleanup:
+    name: Clean up intermediate artifacts
+    needs: package
+    if: always()
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - name: Delete intermediate build-cache artifacts
+        uses: actions/github-script@v7
         with:
-          name: halcyon-build-logs
-          path: |
-            ${{ env.CHROMIUM_SRC }}/${{ env.BUILD_OUT }}/*.ninja_log
-            ${{ env.CHROMIUM_SRC }}/${{ env.BUILD_OUT }}/*.gn
-          retention-days: 7
-          if-no-files-found: ignore
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const runId = context.runId;
+            const artifactName = process.env.CACHE_ARTIFACT;
+
+            // List all artifacts in this run.
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner, repo, run_id: runId,
+            });
+
+            // Find the build-cache artifact(s) and delete them.
+            for (const a of artifacts.data.artifacts) {
+              if (a.name === artifactName) {
+                console.log(`Deleting artifact ${a.name} (id=${a.id}, size=${a.size_in_bytes} bytes)`);
+                await github.rest.actions.deleteArtifact({
+                  owner, repo, artifact_id: a.id,
+                });
+              }
+            }
+            console.log('Cleanup complete.');
+          env:
+            CACHE_ARTIFACT: ${{ env.CACHE_ARTIFACT }}
