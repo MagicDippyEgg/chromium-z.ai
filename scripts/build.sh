@@ -109,9 +109,11 @@ if [[ "$PREPARE_ONLY" == "true" ]]; then
       echo "  [skip] $name (file is empty)"
       continue
     fi
-    # Check if the patch has any actual diff content (a line starting
-    # with 'diff --git' or '---'/'+++'). If not, skip.
-    if ! grep -q "^diff --git\|^---" "$patch_path"; then
+    # Check if the patch has any actual diff content. A real git patch
+    # has lines starting with 'diff --git' (the file headers). The
+    # deferred-stub patch has a `---` separator in its prose header
+    # but no `diff --git` lines, so we check for the latter specifically.
+    if ! grep -q "^diff --git" "$patch_path"; then
       echo "  [skip] $name (no diff content — deferred stub)"
       continue
     fi
