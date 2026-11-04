@@ -99,15 +99,23 @@ if [[ "$PREPARE_ONLY" == "true" ]]; then
   )
   for p in "${PATCH_ORDER[@]}"; do
     name="$p"
-    if [[ ! -s "${REPO_ROOT}/patches/$p" ]]; then
-      echo "  [skip] $name (empty/deferred — using --allow-empty)"
-      git apply --allow-empty "${REPO_ROOT}/patches/$p" || {
-        echo "error: $name failed to apply (even with --allow-empty)" >&2
-        exit 1
-      }
+    patch_path="${REPO_ROOT}/patches/$p"
+    # Skip empty/deferred patches entirely. The patch file may have
+    # a header but no diff content (e.g. context_menu_add_margin_note.patch
+    # is a deferred stub). `git apply --allow-empty` requires a valid
+    # git patch format with zero changes; our stub has no diff at all,
+    # so git apply rejects it. Just skip.
+    if [[ ! -s "$patch_path" ]]; then
+      echo "  [skip] $name (file is empty)"
       continue
     fi
-    if git apply "${REPO_ROOT}/patches/$p"; then
+    # Check if the patch has any actual diff content (a line starting
+    # with 'diff --git' or '---'/'+++'). If not, skip.
+    if ! grep -q "^diff --git\|^---" "$patch_path"; then
+      echo "  [skip] $name (no diff content — deferred stub)"
+      continue
+    fi
+    if git apply "$patch_path"; then
       echo "  [ok]   $name"
     else
       echo "error: $name failed to apply" >&2
