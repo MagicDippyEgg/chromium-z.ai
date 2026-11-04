@@ -132,22 +132,41 @@ jobs:
       - name: Run design-token consistency check
         run: python3 halcyon/design/verify_tokens.py
 
-      - name: Fetch a tiny Chromium tree (sparse, for patch-apply check)
+      - name: Fetch the upstream files the patches touch
+        # The patches touch 7 specific upstream files. Instead of fetching
+        # the entire Chromium tree (even sparse, ~5 min), we just download
+        # those 7 files via the GitHub raw content API. This brings the
+        # step down to ~10 seconds.
+        #
+        # We fetch the files at the pinned revision (refs/tags/159.0.8141.0).
         run: |
           mkdir -p chromium/src
           cd chromium/src
-          git init
-          git sparse-checkout init --cone
-          git sparse-checkout set \
-            chrome/app \
-            chrome/browser/ui \
-            chrome/browser/themes \
-            chrome/common \
-            build/config
-          git remote add origin https://chromium.googlesource.com/chromium/src.git
-          git fetch --depth 1 --filter=blob:none origin refs/tags/159.0.8141.0
-          git checkout FETCH_HEAD
-          git log --oneline -1
+          git init -q
+          git config user.email "test@local"
+          git config user.name "test"
+          BASE="https://raw.githubusercontent.com/chromium/chromium/159.0.8141.0"
+          FILES=(
+            "chrome/app/chrome_command_ids.h"
+            "chrome/browser/themes/theme_service_factory.cc"
+            "chrome/browser/ui/BUILD.gn"
+            "chrome/browser/ui/views/frame/browser_view.cc"
+            "chrome/browser/ui/webui/chrome_web_ui_configs.cc"
+            "chrome/common/chrome_features.cc"
+            "chrome/common/chrome_features.h"
+            "chrome/common/webui_url_constants.h"
+          )
+          for f in "${FILES[@]}"; do
+            mkdir -p "$(dirname "$f")"
+            curl -fsSL "$BASE/$f" -o "$f" || {
+              echo "::error::failed to fetch $f from $BASE/$f" >&2
+              exit 1
+            }
+          done
+          git add -A
+          git commit -q -m "fetched upstream files at 159.0.8141.0"
+          echo "ok: fetched ${#FILES[@]} files from chromium 159.0.8141.0"
+          ls -la chrome/app/chrome_command_ids.h
 
       - name: Verify patches apply
         continue-on-error: true
@@ -968,7 +987,9 @@ jobs:
   package:
     name: Package the Halcyon browser
     needs: build_part_10
-    if: always() && !cancelled()
+    # Run only if the build chain succeeded (don't run on cancellation
+    # or failure — that would just produce confusing skip messages).
+    if: ${{ !cancelled() && needs.build_part_10.result == 'success' }}
     runs-on: ubuntu-22.04
     timeout-minutes: 30
     steps:
@@ -991,8 +1012,14 @@ jobs:
             echo "ok: at least one build_part produced the chrome binary"
             echo "should_package=true" >> "$GITHUB_OUTPUT"
           else
+            # No build_part finished — the build is incomplete.
+            # Fail this job loudly so the workflow reports failure.
             echo "::error::no build_part produced the chrome binary; cannot package" >&2
+            echo "  This usually means the 10 chunks (50 hours) were not enough" >&2
+            echo "  to complete a clean build. The workflow needs more chunks," >&2
+            echo "  OR a chunk failed mid-way. Check the build_part_NN job logs." >&2
             echo "should_package=false" >> "$GITHUB_OUTPUT"
+            exit 1
           fi
 
       - name: Free up runner disk
