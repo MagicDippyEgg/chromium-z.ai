@@ -296,6 +296,7 @@ jobs:
       - name: Run prep (fetch source, apply patches, gn gen)
         run: |
           docker run --rm \
+            --user $(id -u):$(id -g) \
             -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=true \
             -e HOME=/tmp \
@@ -383,6 +384,7 @@ jobs:
           # _gha_final=false: if this chunk times out, the next one
           # continues. The 10th chunk has _gha_final=true.
           docker run --rm \
+            --user $(id -u):$(id -g) \
             -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false \
             -e _gha_final=false \
@@ -466,7 +468,7 @@ jobs:
       - name: Run ninja (chunk 2)
         id: build
         run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+          docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=false \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
             ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
@@ -530,7 +532,7 @@ jobs:
       - name: Run ninja (chunk 3)
         id: build
         run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+          docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=false \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
             ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
@@ -590,7 +592,7 @@ jobs:
       - name: Run ninja (chunk 4)
         id: build
         run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+          docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=false \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
             ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
@@ -650,7 +652,7 @@ jobs:
       - name: Run ninja (chunk 5)
         id: build
         run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+          docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=false \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
             ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
@@ -710,7 +712,7 @@ jobs:
       - name: Run ninja (chunk 6)
         id: build
         run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+          docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=false \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
             ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
@@ -770,7 +772,7 @@ jobs:
       - name: Run ninja (chunk 7)
         id: build
         run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+          docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=false \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
             ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
@@ -830,7 +832,7 @@ jobs:
       - name: Run ninja (chunk 8)
         id: build
         run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+          docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=false \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
             ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
@@ -890,7 +892,7 @@ jobs:
       - name: Run ninja (chunk 9)
         id: build
         run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+          docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=false \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
             ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
@@ -951,7 +953,7 @@ jobs:
         id: build
         run: |
           # _gha_final=true: this is the last chunk; it must succeed.
-          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
+          docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=true \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
             ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh
