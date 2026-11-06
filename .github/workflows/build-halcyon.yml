@@ -250,12 +250,16 @@ jobs:
       - name: Compute Docker image tag from Dockerfile content
         id: docker_meta
         run: |
-          # Hash the Dockerfile + the build.sh + the patches dir to derive
-          # a stable tag. If any of these change, the image is rebuilt.
+          # Hash the Dockerfile + the build.sh to derive a stable tag.
+          # If any of these change, the image is rebuilt.
           DOCKER_HASH=$(sha256sum docker/build.Dockerfile scripts/build.sh | sha256sum | cut -c1-12)
+          # Output the full image path (not just the version tag) so
+          # downstream jobs can `docker pull ${{ needs.prep.outputs.docker-tag }}`
+          # directly.
           echo "version=trixie-${DOCKER_HASH}" >> "$GITHUB_OUTPUT"
           echo "tag=${{ env.DOCKER_IMAGE }}:trixie-${DOCKER_HASH}" >> "$GITHUB_OUTPUT"
-          echo "info: Docker image tag = trixie-${DOCKER_HASH}"
+          echo "docker-tag=${{ env.DOCKER_IMAGE }}:trixie-${DOCKER_HASH}" >> "$GITHUB_OUTPUT"
+          echo "info: Docker image tag = ${{ env.DOCKER_IMAGE }}:trixie-${DOCKER_HASH}"
 
       - name: Try to pull the existing image
         id: pull
