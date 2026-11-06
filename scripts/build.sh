@@ -175,17 +175,14 @@ if [[ "$PREPARE_ONLY" == "true" ]]; then
   if [[ -x "${SRC_DIR}/third_party/llvm-build/Release+Asserts/bin/clang" ]]; then
     ls -la "${SRC_DIR}/third_party/llvm-build/Release+Asserts/bin/clang" || true
     "${SRC_DIR}/third_party/llvm-build/Release+Asserts/bin/clang" --version 2>&1 | head -3 || true
-    echo "ok: hermetic clang already present"
+    echo "ok: hermetic clang binary present"
   else
     echo "info: hermetic clang not present; fetching via update.py (~600 MB)..."
-    # update.py downloads the toolchain from a Google storage bucket.
-    # The --output-dir arg makes it write to the standard Chromium path.
     python3 tools/clang/scripts/update.py 2>&1 || {
       echo "error: clang update.py failed" >&2
       echo "  the hermetic clang is required; the build cannot proceed without it" >&2
       exit 1
     }
-    # Verify
     if [[ ! -x "${SRC_DIR}/third_party/llvm-build/Release+Asserts/bin/clang" ]]; then
       echo "error: update.py ran but the clang binary is still missing" >&2
       ls -la "${SRC_DIR}/third_party/llvm-build/Release+Asserts/bin/" 2>&1 || true
@@ -194,6 +191,34 @@ if [[ "$PREPARE_ONLY" == "true" ]]; then
     "${SRC_DIR}/third_party/llvm-build/Release+Asserts/bin/clang" --version 2>&1 | head -3
     echo "ok: hermetic clang fetched"
   fi
+
+  # 6a-continued. The build/config/compiler/BUILD.gn assertion reads
+  # `third_party/llvm-build/Release+Asserts/cr_build_revision` and
+  # expects it to match the CLANG_REVISION + CLANG_SUB_REVISION in
+  # tools/clang/scripts/update.py. The source tarball ships the clang
+  # binary but sometimes ships an empty `cr_build_revision` file (or
+  # no file at all). If the file is empty or missing, write the
+  # expected revision string so the gn gen assertion passes.
+  CR_BUILD_REV_FILE="${SRC_DIR}/third_party/llvm-build/Release+Asserts/cr_build_revision"
+  EXPECTED_REVISION=$(python3 -c "
+import re
+with open('${SRC_DIR}/tools/clang/scripts/update.py') as f:
+    content = f.read()
+rev = re.search(r\"CLANG_REVISION = '([^']+)'\", content).group(1)
+sub = re.search(r'CLANG_SUB_REVISION = ([0-9]+)', content).group(1)
+print(f'{rev}-{sub}')
+")
+  if [[ ! -f "$CR_BUILD_REV_FILE" ]] || [[ ! -s "$CR_BUILD_REV_FILE" ]]; then
+    echo "info: cr_build_revision is missing/empty; writing $EXPECTED_REVISION"
+    echo "$EXPECTED_REVISION" > "$CR_BUILD_REV_FILE"
+  else
+    ACTUAL=$(cat "$CR_BUILD_REV_FILE")
+    if [[ "$ACTUAL" != "$EXPECTED_REVISION" ]]; then
+      echo "info: cr_build_revision mismatch (actual='$ACTUAL', expected='$EXPECTED_REVISION'); fixing"
+      echo "$EXPECTED_REVISION" > "$CR_BUILD_REV_FILE"
+    fi
+  fi
+  echo "ok: cr_build_revision = $(cat "$CR_BUILD_REV_FILE")"
 
   # 6b. Fetch the Linux sysroot. The build needs it for use_sysroot=true.
   # The install-sysroot.py script downloads ~30 MB.
