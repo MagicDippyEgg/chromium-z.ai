@@ -298,9 +298,11 @@ is_component_build = true
 use_thin_lto = false
 
 # Disable features we don't need (each shaves time + disk).
-enable_nacl = false
-enable_remoting = false
-enable_service_discovery = false
+# NOTE: enable_nacl was removed from Chromium (NaCl is dead); don't
+# set it. enable_remoting and enable_service_discovery may also be
+# gone in newer versions; if gn gen complains, remove them too.
+# enable_remoting = false
+# enable_service_discovery = false
 
 # Don't fail the CI build on warnings; the Halcyon code is new and may
 # produce some that upstream's -Werror catches.
@@ -362,8 +364,11 @@ GN
   echo "=== running gn gen ==="
   cd "$SRC_DIR"
   # Use the bootstrapped gn directly (not the depot_tools wrapper,
-  # which has trouble finding it).
-  ${SRC_DIR}/buildtools/linux64/gn gen "$OUT_DIR" --fail-on-unused-args
+  # which has trouble finding it). Don't use --fail-on-unused-args
+  # because some args in our args.gn may not be recognized by this
+  # Chromium version (e.g. enable_nacl was removed); we'd rather
+  # get a warning than a hard failure for those.
+  ${SRC_DIR}/buildtools/linux64/gn gen "$OUT_DIR"
   echo "ok: gn gen complete"
 
   # 9. Verify the Halcyon targets are in the build graph.
