@@ -151,9 +151,15 @@ RUN apt-get -y install -y --no-install-recommends \
 
 # depot_tools — for `gn` and (rarely) `gclient`. We clone it but DON'T
 # run gclient sync — the Halcyon build uses the source tarball.
+# Bootstrap depot_tools now so the `gn` wrapper works at run time
+# (it requires python3_bin_reldir.txt to exist, which is created by
+# ensure_bootstrap).
 RUN git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git /opt/depot_tools && \
     echo 'DEPOT_TOOLS_UPDATE=0' > /opt/depot_tools/env && \
-    echo 'DEPOT_TOOLS_BOOTSTRAP_PYTHON3=1' >> /opt/depot_tools/env
+    echo 'DEPOT_TOOLS_BOOTSTRAP_PYTHON3=1' >> /opt/depot_tools/env && \
+    cd /opt/depot_tools && \
+    bash ensure_bootstrap 2>&1 | tail -5 || \
+    echo "warning: ensure_bootstrap failed in Dockerfile; build.sh will retry"
 ENV PATH="/opt/depot_tools:${PATH}"
 
 # Build a `builder` user (uid 1000) that matches the GitHub Actions runner

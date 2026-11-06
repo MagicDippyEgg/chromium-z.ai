@@ -258,8 +258,35 @@ GN
   cat "$OUT_DIR/args.gn"
 
   # 8. Run gn gen to generate the ninja build files.
+  # The `gn` binary in depot_tools requires depot_tools to be bootstrapped
+  # first (it needs python3_bin_reldir.txt). Run the bootstrap script.
+  echo "=== bootstrapping depot_tools (required by gn) ==="
+  # depot_tools' entry point checks for python3_bin_reldir.txt; if it's
+  # missing, run ensure_bootstrap or update_depot_tools to create it.
+  if [[ ! -f /opt/depot_tools/python3_bin_reldir.txt ]]; then
+    # ensure_bootstrap is the canonical bootstrap script. It downloads
+    # a hermetic python3 and writes python3_bin_reldir.txt pointing at it.
+    # This is needed because the gn wrapper uses depot_tools' python, not
+    # the system python.
+    bash /opt/depot_tools/ensure_bootstrap 2>&1 || {
+      echo "warning: ensure_bootstrap failed; trying update_depot_tools" >&2
+      bash /opt/depot_tools/update_depot_tools 2>&1 || true
+    }
+  fi
+  # If bootstrap still didn't produce python3_bin_reldir.txt, write one
+  # manually pointing at the system python3.
+  if [[ ! -f /opt/depot_tools/python3_bin_reldir.txt ]]; then
+    echo "warning: writing python3_bin_reldir.txt manually" >&2
+    # The file should contain a relative path to the python3 directory.
+    # We point at the system python3 by writing its containing dir.
+    PYTHON3_DIR=$(dirname $(dirname $(which python3)))
+    echo "$PYTHON3_DIR" > /opt/depot_tools/python3_bin_reldir.txt
+  fi
+  echo "ok: depot_tools bootstrapped"
+
   echo "=== running gn gen ==="
   cd "$SRC_DIR"
+  # Use the gn from depot_tools (it knows about the hermetic python).
   gn gen "$OUT_DIR" --fail-on-unused-args
   echo "ok: gn gen complete"
 
