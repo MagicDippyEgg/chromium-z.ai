@@ -174,27 +174,44 @@ if [[ "$PREPARE_ONLY" == "true" ]]; then
   echo "=== setting up toolchain symlinks ==="
   setup_toolchain_symlinks() {
     local src_dir="$1"
-    # Node.js (Chromium expects node at third_party/node/linux/node-linux-x64/bin/node)
-    mkdir -p "${src_dir}/third_party/node/linux/node-linux-x64/bin"
-    ln -sf "$(which node)" "${src_dir}/third_party/node/linux/node-linux-x64/bin/node"
-    ln -sf "$(which npm)" "${src_dir}/third_party/node/linux/node-linux-x64/bin/npm"
-    # gperf
-    mkdir -p "${src_dir}/third_party/gperf/cipd/bin/"
-    ln -sf "$(which gperf)" "${src_dir}/third_party/gperf/cipd/bin/gperf"
-    # Go (for Dawn / WebGPU)
-    mkdir -p "${src_dir}/third_party/dawn/tools/golang/linux-amd64/bin"
-    ln -sf "$(which go)" "${src_dir}/third_party/dawn/tools/golang/linux-amd64/bin/go"
-    # clang-format
-    mkdir -p "${src_dir}/buildtools/linux64-format"
-    ln -sf "$(which clang-format)" "${src_dir}/buildtools/linux64-format/clang-format"
-    # TypeScript compiler
-    mkdir -p "${src_dir}/third_party/typescript/linux-amd64/src/lib"
-    ln -sf "$(which tsc)" "${src_dir}/third_party/typescript/linux-amd64/src/lib/tsc"
-    # esbuild (Chromium uses it for some WebUI build steps)
-    if [[ -d "${src_dir}/third_party/devtools-frontend/src/node_modules/esbuild" ]]; then
-      rm -rf "${src_dir}/third_party/devtools-frontend/src/node_modules/esbuild"
+    # Node.js: the source tarball ships the correct node binary at
+    # third_party/node/linux/node-linux-x64/bin/node. Only symlink the
+    # system node if the tarball's binary is NOT present (which would
+    # mean the tarball didn't include it). Overwriting the tarball's
+    # correct version with a wrong system version causes the
+    # check_version.py build step to fail.
+    if [[ ! -x "${src_dir}/third_party/node/linux/node-linux-x64/bin/node" ]]; then
+      echo "  node: tarball's binary not found; symlinking system node"
+      mkdir -p "${src_dir}/third_party/node/linux/node-linux-x64/bin"
+      ln -sf "$(which node)" "${src_dir}/third_party/node/linux/node-linux-x64/bin/node"
+      ln -sf "$(which npm)" "${src_dir}/third_party/node/linux/node-linux-x64/bin/npm"
+    else
+      echo "  node: tarball's binary present (v$(${src_dir}/third_party/node/linux/node-linux-x64/bin/node --version 2>/dev/null || echo '?'))"
     fi
-    ln -sf /usr/lib/node_modules/esbuild "${src_dir}/third_party/devtools-frontend/src/node_modules/esbuild"
+    # gperf
+    if [[ ! -x "${src_dir}/third_party/gperf/cipd/bin/gperf" ]]; then
+      mkdir -p "${src_dir}/third_party/gperf/cipd/bin/"
+      ln -sf "$(which gperf)" "${src_dir}/third_party/gperf/cipd/bin/gperf"
+    fi
+    # Go (for Dawn / WebGPU)
+    if [[ ! -x "${src_dir}/third_party/dawn/tools/golang/linux-amd64/bin/go" ]]; then
+      mkdir -p "${src_dir}/third_party/dawn/tools/golang/linux-amd64/bin"
+      ln -sf "$(which go)" "${src_dir}/third_party/dawn/tools/golang/linux-amd64/bin/go"
+    fi
+    # clang-format
+    if [[ ! -x "${src_dir}/buildtools/linux64-format/clang-format" ]]; then
+      mkdir -p "${src_dir}/buildtools/linux64-format"
+      ln -sf "$(which clang-format)" "${src_dir}/buildtools/linux64-format/clang-format"
+    fi
+    # TypeScript compiler
+    if [[ ! -x "${src_dir}/third_party/typescript/linux-amd64/src/lib/tsc" ]]; then
+      mkdir -p "${src_dir}/third_party/typescript/linux-amd64/src/lib"
+      ln -sf "$(which tsc)" "${src_dir}/third_party/typescript/linux-amd64/src/lib/tsc"
+    fi
+    # esbuild (Chromium uses it for some WebUI build steps)
+    if [[ ! -e "${src_dir}/third_party/devtools-frontend/src/node_modules/esbuild" ]]; then
+      ln -sf /usr/lib/node_modules/esbuild "${src_dir}/third_party/devtools-frontend/src/node_modules/esbuild"
+    fi
   }
   setup_toolchain_symlinks "$SRC_DIR"
   echo "ok: toolchain symlinks set up"
