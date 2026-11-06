@@ -257,49 +257,48 @@ GN
   echo "ok: args.gn written at $OUT_DIR/args.gn"
   cat "$OUT_DIR/args.gn"
 
-  # 8. Run gn gen to generate the ninja build files.
-  # The `gn` binary in depot_tools requires depot_tools to be bootstrapped
-  # first (it needs python3_bin_reldir.txt). Run the bootstrap script.
-  echo "=== bootstrapping depot_tools (required by gn) ==="
-  # depot_tools' entry point checks for python3_bin_reldir.txt; if it's
-  # missing, run ensure_bootstrap or update_depot_tools to create it.
-  if [[ ! -f /opt/depot_tools/python3_bin_reldir.txt ]]; then
-    # ensure_bootstrap is the canonical bootstrap script. It downloads
-    # a hermetic python3 and writes python3_bin_reldir.txt pointing at it.
-    # This is needed because the gn wrapper uses depot_tools' python, not
-    # the system python.
-    bash /opt/depot_tools/ensure_bootstrap 2>&1 || {
-      echo "warning: ensure_bootstrap failed; trying update_depot_tools" >&2
-      bash /opt/depot_tools/update_depot_tools 2>&1 || true
+  # 8. Bootstrap gn from the Chromium source and run gn gen.
+  # The `gn` binary in depot_tools is a wrapper that looks for gn in
+  # buildtools/linux64/gn, but that file is gitignored and is normally
+  # fetched by `gclient runhooks` (which we don't run because we use
+  # the source tarball). Instead, we bootstrap gn from the Chromium
+  # source itself via tools/gn/bootstrap/bootstrap.py.
+  echo "=== bootstrapping gn from source ==="
+  if [[ ! -x "${SRC_DIR}/buildtools/linux64/gn" ]]; then
+    cd "$SRC_DIR"
+    # The bootstrap script builds gn from source and writes it to
+    # buildtools/linux64/gn. Takes ~1-2 minutes on the runner.
+    python3 tools/gn/bootstrap/bootstrap.py -o buildtools/linux64/gn \
+        --skip-generate-buildfiles 2>&1 || {
+      echo "error: gn bootstrap failed" >&2
+      echo "  see https://gn.googlesource.com/gn/ for the source" >&2
+      exit 1
     }
   fi
-  # If bootstrap still didn't produce python3_bin_reldir.txt, write one
-  # manually pointing at the system python3.
-  if [[ ! -f /opt/depot_tools/python3_bin_reldir.txt ]]; then
-    echo "warning: writing python3_bin_reldir.txt manually" >&2
-    # The file should contain a relative path to the python3 directory.
-    # We point at the system python3 by writing its containing dir.
-    PYTHON3_DIR=$(dirname $(dirname $(which python3)))
-    echo "$PYTHON3_DIR" > /opt/depot_tools/python3_bin_reldir.txt
+  if [[ ! -x "${SRC_DIR}/buildtools/linux64/gn" ]]; then
+    echo "error: gn binary not found at ${SRC_DIR}/buildtools/linux64/gn after bootstrap" >&2
+    exit 1
   fi
-  echo "ok: depot_tools bootstrapped"
+  echo "ok: gn bootstrapped at ${SRC_DIR}/buildtools/linux64/gn"
+  ${SRC_DIR}/buildtools/linux64/gn --version
 
   echo "=== running gn gen ==="
   cd "$SRC_DIR"
-  # Use the gn from depot_tools (it knows about the hermetic python).
-  gn gen "$OUT_DIR" --fail-on-unused-args
+  # Use the bootstrapped gn directly (not the depot_tools wrapper,
+  # which has trouble finding it).
+  ${SRC_DIR}/buildtools/linux64/gn gen "$OUT_DIR" --fail-on-unused-args
   echo "ok: gn gen complete"
 
   # 9. Verify the Halcyon targets are in the build graph.
   echo "=== verifying Halcyon targets in build graph ==="
-  if gn ls "$OUT_DIR" //halcyon:halcyon 2>&1 | head -3; then
+  if ${SRC_DIR}/buildtools/linux64/gn ls "$OUT_DIR" //halcyon:halcyon 2>&1 | head -3; then
     echo "ok: //halcyon:halcyon is in the build graph"
   else
     echo "warning: //halcyon:halcyon not found — check that enable_halcyon is true in args.gn"
   fi
   # The chrome target should pull in Halcyon via the source_set("halcyon")
   # dependency added by patches/gyp_enable_halcyon.patch.
-  if gn ls "$OUT_DIR" //chrome/browser/ui:halcyon 2>&1 | head -3; then
+  if ${SRC_DIR}/buildtools/linux64/gn ls "$OUT_DIR" //chrome/browser/ui:halcyon 2>&1 | head -3; then
     echo "ok: //chrome/browser/ui:halcyon is in the build graph"
   else
     echo "warning: //chrome/browser/ui:halcyon not found"
