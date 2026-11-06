@@ -442,7 +442,7 @@ jobs:
 
   build_part_02:
     name: Build (chunk 2/10)
-    needs: build_part_01
+    needs: [prep, build_part_01]
     if: needs.build_part_01.outputs.status == 'running'
     runs-on: ubuntu-22.04
     timeout-minutes: 360
@@ -506,7 +506,7 @@ jobs:
   # `needs` field updated to point at the previous chunk.
   build_part_03:
     name: Build (chunk 3/10)
-    needs: build_part_02
+    needs: [prep, build_part_02]
     if: needs.build_part_02.outputs.status == 'running'
     runs-on: ubuntu-22.04
     timeout-minutes: 360
@@ -566,7 +566,7 @@ jobs:
 
   build_part_04:
     name: Build (chunk 4/10)
-    needs: build_part_03
+    needs: [prep, build_part_03]
     if: needs.build_part_03.outputs.status == 'running'
     runs-on: ubuntu-22.04
     timeout-minutes: 360
@@ -626,7 +626,7 @@ jobs:
 
   build_part_05:
     name: Build (chunk 5/10)
-    needs: build_part_04
+    needs: [prep, build_part_04]
     if: needs.build_part_04.outputs.status == 'running'
     runs-on: ubuntu-22.04
     timeout-minutes: 360
@@ -686,7 +686,7 @@ jobs:
 
   build_part_06:
     name: Build (chunk 6/10)
-    needs: build_part_05
+    needs: [prep, build_part_05]
     if: needs.build_part_05.outputs.status == 'running'
     runs-on: ubuntu-22.04
     timeout-minutes: 360
@@ -746,7 +746,7 @@ jobs:
 
   build_part_07:
     name: Build (chunk 7/10)
-    needs: build_part_06
+    needs: [prep, build_part_06]
     if: needs.build_part_06.outputs.status == 'running'
     runs-on: ubuntu-22.04
     timeout-minutes: 360
@@ -806,7 +806,7 @@ jobs:
 
   build_part_08:
     name: Build (chunk 8/10)
-    needs: build_part_07
+    needs: [prep, build_part_07]
     if: needs.build_part_07.outputs.status == 'running'
     runs-on: ubuntu-22.04
     timeout-minutes: 360
@@ -866,7 +866,7 @@ jobs:
 
   build_part_09:
     name: Build (chunk 9/10)
-    needs: build_part_08
+    needs: [prep, build_part_08]
     if: needs.build_part_08.outputs.status == 'running'
     runs-on: ubuntu-22.04
     timeout-minutes: 360
@@ -926,7 +926,7 @@ jobs:
 
   build_part_10:
     name: Build (chunk 10/10, final)
-    needs: build_part_09
+    needs: [prep, build_part_09]
     if: needs.build_part_09.outputs.status == 'running'
     runs-on: ubuntu-22.04
     timeout-minutes: 360
@@ -992,7 +992,7 @@ jobs:
   # ==========================================================================
   package:
     name: Package the Halcyon browser
-    needs: build_part_10
+    needs: [prep, build_part_10]
     # Run only if the build chain succeeded (don't run on cancellation
     # or failure — that would just produce confusing skip messages).
     if: ${{ !cancelled() && needs.build_part_10.result == 'success' }}
