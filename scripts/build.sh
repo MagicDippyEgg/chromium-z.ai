@@ -171,14 +171,28 @@ if [[ "$PREPARE_ONLY" == "true" ]]; then
 
   # 6a. Fetch the hermetic clang toolchain. This is the script that
   # `gclient runhooks` would call. It downloads ~600 MB.
-  if [[ ! -x "${SRC_DIR}/third_party/llvm-build/Release+Asserts/bin/clang" ]]; then
-    echo "info: fetching hermetic clang toolchain (~600 MB)..."
-    python3 tools/clang/scripts/update.py --output-dir=third_party/llvm-build/Release+Asserts 2>&1 || {
+  echo "info: checking for hermetic clang at ${SRC_DIR}/third_party/llvm-build/Release+Asserts/bin/clang"
+  if [[ -x "${SRC_DIR}/third_party/llvm-build/Release+Asserts/bin/clang" ]]; then
+    ls -la "${SRC_DIR}/third_party/llvm-build/Release+Asserts/bin/clang" || true
+    "${SRC_DIR}/third_party/llvm-build/Release+Asserts/bin/clang" --version 2>&1 | head -3 || true
+    echo "ok: hermetic clang already present"
+  else
+    echo "info: hermetic clang not present; fetching via update.py (~600 MB)..."
+    # update.py downloads the toolchain from a Google storage bucket.
+    # The --output-dir arg makes it write to the standard Chromium path.
+    python3 tools/clang/scripts/update.py 2>&1 || {
       echo "error: clang update.py failed" >&2
+      echo "  the hermetic clang is required; the build cannot proceed without it" >&2
       exit 1
     }
-  else
-    echo "ok: hermetic clang already present"
+    # Verify
+    if [[ ! -x "${SRC_DIR}/third_party/llvm-build/Release+Asserts/bin/clang" ]]; then
+      echo "error: update.py ran but the clang binary is still missing" >&2
+      ls -la "${SRC_DIR}/third_party/llvm-build/Release+Asserts/bin/" 2>&1 || true
+      exit 1
+    fi
+    "${SRC_DIR}/third_party/llvm-build/Release+Asserts/bin/clang" --version 2>&1 | head -3
+    echo "ok: hermetic clang fetched"
   fi
 
   # 6b. Fetch the Linux sysroot. The build needs it for use_sysroot=true.
