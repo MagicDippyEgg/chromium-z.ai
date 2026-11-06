@@ -232,7 +232,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 60
     outputs:
-      docker_tag: ${{ steps.docker_meta.outputs.version }}
+      docker_tag: ${{ steps.docker_meta.outputs.docker_tag }}
     steps:
       - name: Checkout Halcyon overlay
         uses: actions/checkout@v4
