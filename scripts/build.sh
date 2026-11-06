@@ -117,13 +117,35 @@ if [[ "$PREPARE_ONLY" == "true" ]]; then
       echo "  [skip] $name (no diff content — deferred stub)"
       continue
     fi
-    if git apply "$patch_path"; then
+    if git apply "$patch_path" 2>&1; then
+      # git apply may silently skip hunks if the context doesn't match.
+      # Verify the patch actually made changes by checking if the
+      # files mentioned in the patch were modified. For our key patches
+      # (gyp_enable_halcyon), check that the import was actually added.
+      if [[ "$name" == "gyp_enable_halcyon.patch" ]]; then
+        if ! grep -q 'halcyon_features.gni' build/config/BUILDCONFIG.gn 2>/dev/null; then
+          echo "warning: $name reported OK but BUILDCONFIG.gn wasn't modified; trying patch -p1" >&2
+          git checkout -- build/config/BUILDCONFIG.gn 2>/dev/null || true
+          patch -p1 --fuzz=3 < "$patch_path" 2>&1 | tail -10 || {
+            echo "error: $name failed to apply BUILDCONFIG.gn hunk" >&2
+            exit 1
+          }
+        fi
+      fi
       echo "  [ok]   $name"
     else
-      echo "error: $name failed to apply" >&2
-      echo "  the patches are pinned to Chromium 159.0.8141.0." >&2
-      echo "  see patches/README.md for how to rebase." >&2
-      exit 1
+      # Fall back to patch -p1 with fuzz, which is more tolerant of
+      # context differences (e.g. the tarball's BUILDCONFIG.gn may
+      # have slightly different whitespace than the git checkout).
+      echo "info: git apply failed for $name; trying patch -p1 --fuzz=3" >&2
+      if patch -p1 --fuzz=3 < "$patch_path" 2>&1 | tail -10; then
+        echo "  [ok]   $name (via patch -p1)"
+      else
+        echo "error: $name failed to apply" >&2
+        echo "  the patches are pinned to Chromium 159.0.8141.0." >&2
+        echo "  see patches/README.md for how to rebase." >&2
+        exit 1
+      fi
     fi
   done
   echo "ok: all patches applied"
