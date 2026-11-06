@@ -84,19 +84,20 @@ rm -rf "${BUILD_DIR}/download_cache"
 # Compromise: keep the .so files, remove the chrome binary itself.
 rm -f "${BUILD_DIR}/src/out/Halcyon/chrome"
 
-# Remove intermediate object files only if disk is tight.
-# On a 30 GB free runner, keeping them speeds up the next chunk.
-# On a tight runner, removing them fits the cache in the artifact limit.
-DISK_FREE_GB=$(df -BG --output=avail / | tail -1 | tr -dc '0-9')
-if [[ "$DISK_FREE_GB" -lt 15 ]]; then
-  echo "info: disk is tight (${DISK_FREE_GB} GB free); removing obj/ files to fit cache"
-  rm -rf "${BUILD_DIR}/src/out/Halcyon/obj"
-fi
+# NOTE: We do NOT remove obj/ even if disk is tight, because obj/
+# contains the per-target .ninja files that ninja needs to resume
+# the build. The tar excludes already filter out .o/.obj/.a files.
 
 # Build the exclude list. The pattern is relative to BUILD_DIR.
+# We EXCLUDE the obj/ directory's actual object files (.o, .obj) but
+# KEEP the .ninja files that GN generates in obj/ (ninja needs these
+# to know how to build each target). We also exclude other large
+# intermediate files.
 EXCLUDES=(
-  "--exclude=./src/out/Halcyon/obj"
-  "--exclude=./src/third_party/llvm-build/Release+Asserts/lib/clang/*/Modules"
+  "--exclude=./src/out/Halcyon/obj/*.o"
+  "--exclude=./src/out/Halcyon/obj/*.obj"
+  "--exclude=./src/out/Halcyon/obj/*.a"
+  "--exclude=./src/out/Halcyon/third_party/llvm-build/Release+Asserts/lib/clang/*/Modules"
   "--exclude=./src/out/Halcyon/*.ninja_lock"
 )
 
