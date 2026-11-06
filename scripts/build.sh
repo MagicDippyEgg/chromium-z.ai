@@ -241,12 +241,6 @@ halcyon_bundle_fonts = true
 halcyon_default_search_engine = "duckduckgo"
 halcyon_quiet_mode_default = true
 
-# Enable the kHalcyonUI runtime feature by default. The patches declare
-# it as FEATURE_DISABLED_BY_DEFAULT; this arg overrides that so the
-# browser boots straight into the Halcyon chrome without needing
-# --enable-features=HalcyonUI on the command line.
-enable_features = [ "HalcyonUI" ]
-
 # Build the Halcyon browser, not upstream Chrome.
 is_official_build = false
 is_debug = false
@@ -289,6 +283,15 @@ use_remoteexec = false
 blink_symbol_level = 0
 v8_symbol_level = 0
 GN
+  # NOTE: enable_features = ["HalcyonUI"] is NOT a valid GN arg (it's
+  # a runtime field-trial config, not a build arg). The kHalcyonUI
+  # feature is declared FEATURE_DISABLED_BY_DEFAULT in our patch
+  # gyp_enable_halcyon.patch; users enable it at runtime via
+  # --enable-features=HalcyonUI on the chrome command line, OR we
+  # patch the BASE_FEATURE declaration to FEATURE_ENABLED_BY_DEFAULT
+  # in a future round. For CI testing, the chrome binary built here
+  # will use upstream chrome by default; a follow-up change to the
+  # kHalcyonUI BASE_FEATURE default is needed.
   echo "ok: args.gn written at $OUT_DIR/args.gn"
   cat "$OUT_DIR/args.gn"
 

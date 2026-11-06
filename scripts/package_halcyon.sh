@@ -207,6 +207,7 @@ set -e
 HERE="\$(cd "\$(dirname "\$0")" && pwd)"
 exec "\$HERE/chrome" \\
   --user-data-dir="\${HALCYON_USER_DATA_DIR:-\$HOME/.halcyon/profile}" \\
+  --enable-features=HalcyonUI \\
   --disable-domain-reliability \\
   --no-pings \\
   --no-default-browser-check \\

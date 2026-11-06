@@ -67,6 +67,7 @@ COMMON_FLAGS=(
   --enable-unsafe-swiftshader
   --user-data-dir="$TMP_PROFILE"
   --disable-extensions
+  --enable-features=HalcyonUI
   --disable-features=DialMediaRouteProvider,TranslateUI
 )
 
