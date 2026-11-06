@@ -128,6 +128,23 @@ if [[ "$PREPARE_ONLY" == "true" ]]; then
   done
   echo "ok: all patches applied"
 
+  # Diagnostic: verify the BUILDCONFIG.gn has the Halcyon import.
+  echo "=== verifying BUILDCONFIG.gn has halcyon import ==="
+  if grep -q 'halcyon_features.gni' "${SRC_DIR}/build/config/BUILDCONFIG.gn"; then
+    echo "ok: BUILDCONFIG.gn has the import"
+    grep -n 'halcyon_features.gni' "${SRC_DIR}/build/config/BUILDCONFIG.gn"
+  else
+    echo "warning: BUILDCONFIG.gn does NOT have the import — patch 1 didn't apply correctly"
+  fi
+  # Also verify the halcyon_features.gni file is present where the
+  # import expects it.
+  if [[ -f "${SRC_DIR}/halcyon/build/halcyon_features.gni" ]]; then
+    echo "ok: ${SRC_DIR}/halcyon/build/halcyon_features.gni exists"
+  else
+    echo "warning: ${SRC_DIR}/halcyon/build/halcyon_features.gni MISSING"
+    ls -la "${SRC_DIR}/halcyon/build/" 2>&1 || true
+  fi
+
   # 5. Set up the toolchain. Chromium needs clang, node, gperf, etc.
   # The Docker image has all of these installed at standard system paths;
   # we just need to symlink them into the locations Chromium's build
