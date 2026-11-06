@@ -2,17 +2,24 @@ From: Halcyon Browser Project <halcyon@local>
 Date: Tue, 4 Nov 2026 00:00:00 +0000
 Subject: [PATCH] context_menu: add the Halcyon "Add a margin note" item (DEFERRED)
 
-Pinned Chromium revision: ff897141277d798d72ea3ae0a94ff3a51956b267
-                       (Chromium 159.0.8142.0, main HEAD at pin time)
+Pinned Chromium revision: f0ad4fd4ee3dc3ff81e176260e3f1bf441937d29
+                       (Chromium 159.0.8141.0, main HEAD at pin time)
 
-The upstream file referenced by the original skeleton patch
+DEFERRED — the upstream file referenced by the original skeleton patch
 (chrome/browser/ui/views/chrome_javascript_app_menu_controller.cc) does
-not exist in the current Chromium revision. The current render-view
-context menu lives under components/renderer_context_menu/ but the
-menu-item wiring requires more investigation than fit in this round.
+not exist in the current Chromium revision. The actual render-view
+context menu base class lives under components/renderer_context_menu/ but
+wiring a new menu item into it requires substantial understanding of the
+current menu-building pipeline.
 
-The IDC_HALCYON_ADD_MARGIN_NOTE value IS defined (via patch 2), so a
-follow-up patch can wire the menu item by referencing the IDC value.
+The IDC_HALCYON_ADD_MARGIN_NOTE value IS defined (via patch 2,
+chrome_command_ids_halcyon.patch), so a future patch can wire the menu
+item by referencing the IDC value.
+
+This patch is intentionally empty — it documents that the menu-item
+wiring is deferred. The Margin Notes feature's per-URL storage, overlay
+UI, and omnibox indicator all work; only the right-click menu item
+remains to be wired in a follow-up patch.
 
 ---
  (no files modified)
