@@ -232,7 +232,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 60
     outputs:
-      docker-tag: ${{ steps.docker_meta.outputs.version }}
+      docker_tag: ${{ steps.docker_meta.outputs.version }}
     steps:
       - name: Checkout Halcyon overlay
         uses: actions/checkout@v4
@@ -254,11 +254,11 @@ jobs:
           # If any of these change, the image is rebuilt.
           DOCKER_HASH=$(sha256sum docker/build.Dockerfile scripts/build.sh | sha256sum | cut -c1-12)
           # Output the full image path (not just the version tag) so
-          # downstream jobs can `docker pull ${{ needs.prep.outputs.docker-tag }}`
+          # downstream jobs can `docker pull ${{ needs.prep.outputs.docker_tag }}`
           # directly.
           echo "version=trixie-${DOCKER_HASH}" >> "$GITHUB_OUTPUT"
           echo "tag=${{ env.DOCKER_IMAGE }}:trixie-${DOCKER_HASH}" >> "$GITHUB_OUTPUT"
-          echo "docker-tag=${{ env.DOCKER_IMAGE }}:trixie-${DOCKER_HASH}" >> "$GITHUB_OUTPUT"
+          echo "docker_tag=${{ env.DOCKER_IMAGE }}:trixie-${DOCKER_HASH}" >> "$GITHUB_OUTPUT"
           echo "info: Docker image tag = ${{ env.DOCKER_IMAGE }}:trixie-${DOCKER_HASH}"
 
       - name: Try to pull the existing image
@@ -370,7 +370,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull the Docker image
-        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+        run: docker pull ${{ needs.prep.outputs.docker_tag }}
 
       - name: Download build cache
         uses: actions/download-artifact@v4
@@ -395,7 +395,7 @@ jobs:
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} \
             -e GITHUB_OUTPUT=/tmp/github_output \
             -e HOME=/tmp \
-            ${{ needs.prep.outputs.docker-tag }} \
+            ${{ needs.prep.outputs.docker_tag }} \
             bash /repo/scripts/build.sh
           # The container writes status to /tmp/github_output, but that's
           # inside the container. Read it from the bind-mounted /repo.
@@ -461,7 +461,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull Docker image
-        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+        run: docker pull ${{ needs.prep.outputs.docker_tag }}
       - uses: actions/download-artifact@v4
         with:
           name: ${{ env.CACHE_ARTIFACT }}
@@ -475,7 +475,7 @@ jobs:
           docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=false \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
-            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
+            ${{ needs.prep.outputs.docker_tag }} bash /repo/scripts/build.sh || true
           # Default to "running" so the next chunk picks up.
           # If chrome was actually built, the next step will detect it.
           if [[ -x build/src/out/Halcyon/chrome ]]; then
@@ -525,7 +525,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull Docker image
-        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+        run: docker pull ${{ needs.prep.outputs.docker_tag }}
       - uses: actions/download-artifact@v4
         with:
           name: ${{ env.CACHE_ARTIFACT }}
@@ -539,7 +539,7 @@ jobs:
           docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=false \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
-            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
+            ${{ needs.prep.outputs.docker_tag }} bash /repo/scripts/build.sh || true
           if [[ -x build/src/out/Halcyon/chrome ]]; then
             echo "status=completed" >> "$GITHUB_OUTPUT"
           else
@@ -585,7 +585,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull Docker image
-        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+        run: docker pull ${{ needs.prep.outputs.docker_tag }}
       - uses: actions/download-artifact@v4
         with:
           name: ${{ env.CACHE_ARTIFACT }}
@@ -599,7 +599,7 @@ jobs:
           docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=false \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
-            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
+            ${{ needs.prep.outputs.docker_tag }} bash /repo/scripts/build.sh || true
           if [[ -x build/src/out/Halcyon/chrome ]]; then
             echo "status=completed" >> "$GITHUB_OUTPUT"
           else
@@ -645,7 +645,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull Docker image
-        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+        run: docker pull ${{ needs.prep.outputs.docker_tag }}
       - uses: actions/download-artifact@v4
         with:
           name: ${{ env.CACHE_ARTIFACT }}
@@ -659,7 +659,7 @@ jobs:
           docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=false \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
-            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
+            ${{ needs.prep.outputs.docker_tag }} bash /repo/scripts/build.sh || true
           if [[ -x build/src/out/Halcyon/chrome ]]; then
             echo "status=completed" >> "$GITHUB_OUTPUT"
           else
@@ -705,7 +705,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull Docker image
-        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+        run: docker pull ${{ needs.prep.outputs.docker_tag }}
       - uses: actions/download-artifact@v4
         with:
           name: ${{ env.CACHE_ARTIFACT }}
@@ -719,7 +719,7 @@ jobs:
           docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=false \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
-            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
+            ${{ needs.prep.outputs.docker_tag }} bash /repo/scripts/build.sh || true
           if [[ -x build/src/out/Halcyon/chrome ]]; then
             echo "status=completed" >> "$GITHUB_OUTPUT"
           else
@@ -765,7 +765,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull Docker image
-        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+        run: docker pull ${{ needs.prep.outputs.docker_tag }}
       - uses: actions/download-artifact@v4
         with:
           name: ${{ env.CACHE_ARTIFACT }}
@@ -779,7 +779,7 @@ jobs:
           docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=false \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
-            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
+            ${{ needs.prep.outputs.docker_tag }} bash /repo/scripts/build.sh || true
           if [[ -x build/src/out/Halcyon/chrome ]]; then
             echo "status=completed" >> "$GITHUB_OUTPUT"
           else
@@ -825,7 +825,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull Docker image
-        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+        run: docker pull ${{ needs.prep.outputs.docker_tag }}
       - uses: actions/download-artifact@v4
         with:
           name: ${{ env.CACHE_ARTIFACT }}
@@ -839,7 +839,7 @@ jobs:
           docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=false \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
-            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
+            ${{ needs.prep.outputs.docker_tag }} bash /repo/scripts/build.sh || true
           if [[ -x build/src/out/Halcyon/chrome ]]; then
             echo "status=completed" >> "$GITHUB_OUTPUT"
           else
@@ -885,7 +885,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull Docker image
-        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+        run: docker pull ${{ needs.prep.outputs.docker_tag }}
       - uses: actions/download-artifact@v4
         with:
           name: ${{ env.CACHE_ARTIFACT }}
@@ -899,7 +899,7 @@ jobs:
           docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=false \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
-            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh || true
+            ${{ needs.prep.outputs.docker_tag }} bash /repo/scripts/build.sh || true
           if [[ -x build/src/out/Halcyon/chrome ]]; then
             echo "status=completed" >> "$GITHUB_OUTPUT"
           else
@@ -945,7 +945,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull Docker image
-        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+        run: docker pull ${{ needs.prep.outputs.docker_tag }}
       - uses: actions/download-artifact@v4
         with:
           name: ${{ env.CACHE_ARTIFACT }}
@@ -960,7 +960,7 @@ jobs:
           docker run --rm --user $(id -u):$(id -g) -v "$GITHUB_WORKSPACE:/repo" \
             -e _prepare_only=false -e _gha_final=true \
             -e _task_timeout=${{ env.NINJA_TIMEOUT }} -e HOME=/tmp \
-            ${{ needs.prep.outputs.docker-tag }} bash /repo/scripts/build.sh
+            ${{ needs.prep.outputs.docker_tag }} bash /repo/scripts/build.sh
           if [[ -x build/src/out/Halcyon/chrome ]]; then
             echo "status=completed" >> "$GITHUB_OUTPUT"
           else
@@ -1046,7 +1046,7 @@ jobs:
 
       - name: Pull Docker image
         if: steps.check.outputs.should_package == 'true'
-        run: docker pull ${{ needs.prep.outputs.docker-tag }}
+        run: docker pull ${{ needs.prep.outputs.docker_tag }}
 
       - name: Download final build cache
         if: steps.check.outputs.should_package == 'true'
