@@ -160,40 +160,36 @@ if [[ "$PREPARE_ONLY" == "true" ]]; then
   setup_toolchain_symlinks "$SRC_DIR"
   echo "ok: toolchain symlinks set up"
 
-  # 6. Run `gclient runhooks` to fetch the hermetic clang + the Linux
-  #    sysroot. These are required for the build to actually work —
-  #    system clang alone is not enough.
-  echo "=== running gclient runhooks (hermetic clang + sysroot) ==="
+  # 6. Fetch the hermetic clang + the Linux sysroot.
+  # These are required for the build to actually work — system clang
+  # alone doesn't have the right version. The source tarball doesn't
+  # include them; they're normally fetched by `gclient runhooks`.
+  # We call the underlying update scripts directly (faster + more
+  # reliable than running the full hook chain).
+  echo "=== fetching hermetic clang + sysroot ==="
   cd "$SRC_DIR"
-  # The runhooks step downloads ~3 GB (the clang toolchain + sysroot).
-  # We skip if .gclient exists and the toolchain dir is already populated.
-  if [[ ! -d "${SRC_DIR}/third_party/llvm-build/Release+Asserts/bin" ]]; then
-    # Create a minimal .gclient so gclient runhooks works.
-    if [[ ! -f "${BUILD_DIR}/.gclient" ]]; then
-      cat > "${BUILD_DIR}/.gclient" <<'GCLIENT'
-solutions = [
-  {
-    "name": "src",
-    "url": "https://chromium.googlesource.com/chromium/src.git",
-    "deps_file": "DEPS",
-    "managed": False,
-    "custom_deps": {},
-  },
-]
-target_os = []
-GCLIENT
-    fi
-    # Run only the hooks needed for the Linux desktop chrome build.
-    # Skip Android, ChromeOS, Fuchsia, iOS hooks.
-    gclient runhooks \
-      --spec="${BUILD_DIR}/.gclient" \
-      --no-history --shallow || {
-        echo "warning: gclient runhooks failed. Falling back to system clang." >&2
-        echo "  The build may fail with this fallback. If it does, the runhooks" >&2
-        echo "  step needs to succeed — check the network and disk space." >&2
-      }
+
+  # 6a. Fetch the hermetic clang toolchain. This is the script that
+  # `gclient runhooks` would call. It downloads ~600 MB.
+  if [[ ! -x "${SRC_DIR}/third_party/llvm-build/Release+Asserts/bin/clang" ]]; then
+    echo "info: fetching hermetic clang toolchain (~600 MB)..."
+    python3 tools/clang/scripts/update.py --output-dir=third_party/llvm-build/Release+Asserts 2>&1 || {
+      echo "error: clang update.py failed" >&2
+      exit 1
+    }
   else
     echo "ok: hermetic clang already present"
+  fi
+
+  # 6b. Fetch the Linux sysroot. The build needs it for use_sysroot=true.
+  # The install-sysroot.py script downloads ~30 MB.
+  if [[ ! -d "${SRC_DIR}/build/linux/debian_bullseye_amd64-sysroot" ]]; then
+    echo "info: fetching Linux amd64 sysroot (~30 MB)..."
+    python3 build/linux/sysroot_scripts/install-sysroot.py --arch=amd64 2>&1 || {
+      echo "warning: sysroot install failed; build will use system libc" >&2
+    }
+  else
+    echo "ok: Linux sysroot already present"
   fi
 
   # 7. Write args.gn with the Halcyon build configuration.
