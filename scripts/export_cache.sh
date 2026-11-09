@@ -89,14 +89,13 @@ rm -f "${BUILD_DIR}/src/out/Halcyon/chrome"
 # the build. The tar excludes already filter out .o/.obj/.a files.
 
 # Build the exclude list. The pattern is relative to BUILD_DIR.
-# We EXCLUDE the obj/ directory's actual object files (.o, .obj) but
-# KEEP the .ninja files that GN generates in obj/ (ninja needs these
-# to know how to build each target). We also exclude other large
-# intermediate files.
+# We KEEP the obj/ directory's .o/.obj/.a files because ninja needs
+# them to resume the build — without the compiled object files,
+# ninja re-compiles everything from scratch in each chunk, making
+# the chunked build approach useless.
+# We only exclude clang module caches (regenerated on build) and
+# the ninja lock file.
 EXCLUDES=(
-  "--exclude=./src/out/Halcyon/obj/*.o"
-  "--exclude=./src/out/Halcyon/obj/*.obj"
-  "--exclude=./src/out/Halcyon/obj/*.a"
   "--exclude=./src/out/Halcyon/third_party/llvm-build/Release+Asserts/lib/clang/*/Modules"
   "--exclude=./src/out/Halcyon/*.ninja_lock"
 )
