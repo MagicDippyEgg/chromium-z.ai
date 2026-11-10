@@ -992,10 +992,12 @@ jobs:
   # ==========================================================================
   package:
     name: Package the Halcyon browser
-    needs: [prep, build_part_10]
-    # Run only if the build chain succeeded (don't run on cancellation
-    # or failure — that would just produce confusing skip messages).
-    if: ${{ !cancelled() && needs.build_part_10.result == 'success' }}
+    needs: [prep, build_part_01, build_part_02, build_part_03, build_part_04, build_part_05, build_part_06, build_part_07, build_part_08, build_part_09, build_part_10]
+    # Run if the build wasn't cancelled AND any chunk reported
+    # status=completed (meaning the chrome binary was built).
+    # We check all 10 chunks' outputs.status for 'completed'.
+    # Skipped chunks have empty outputs.status, so they won't match.
+    if: ${{ !cancelled() && (needs.build_part_01.outputs.status == 'completed' || needs.build_part_02.outputs.status == 'completed' || needs.build_part_03.outputs.status == 'completed' || needs.build_part_04.outputs.status == 'completed' || needs.build_part_05.outputs.status == 'completed' || needs.build_part_06.outputs.status == 'completed' || needs.build_part_07.outputs.status == 'completed' || needs.build_part_08.outputs.status == 'completed' || needs.build_part_09.outputs.status == 'completed' || needs.build_part_10.outputs.status == 'completed') }}
     runs-on: ubuntu-22.04
     timeout-minutes: 30
     steps:
