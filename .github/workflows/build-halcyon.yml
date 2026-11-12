@@ -85,7 +85,7 @@ concurrency:
 
 permissions:
   contents: read
-  actions: read
+  actions: write  # needed to delete intermediate artifacts in the cleanup job
   packages: write  # for pushing the Docker image to GHCR
 
 env:

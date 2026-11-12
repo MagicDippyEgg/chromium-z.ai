@@ -77,12 +77,11 @@ rm -f "$ARCHIVE_PATH"
 # Clean up the build/download_cache/ (we re-download if needed).
 rm -rf "${BUILD_DIR}/download_cache"
 
-# Remove the chrome binary itself — it's huge (1+ GB for static, ~50 MB
-# for component but linked .so files are 10+ GB) and the package step
-# will re-link it from the .ninja_log state. Actually, for a component
-# build we WANT to keep the .so files because re-linking them takes time.
-# Compromise: keep the .so files, remove the chrome binary itself.
-rm -f "${BUILD_DIR}/src/out/Halcyon/chrome"
+# NOTE: We do NOT remove the chrome binary. The package job needs it
+# to create the downloadable artifact. It's only ~200 MB for a
+# component build, which is negligible compared to the ~15 GB cache.
+# (Previously we removed it to save space, but that caused the
+# package job to fail with "chrome binary not found".)
 
 # NOTE: We do NOT remove obj/ even if disk is tight, because obj/
 # contains the per-target .ninja files that ninja needs to resume
